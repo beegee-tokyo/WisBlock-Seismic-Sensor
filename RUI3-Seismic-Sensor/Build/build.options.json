@@ -1,0 +1,12 @@
+{
+  "additionalFiles": "..,..,..,..,..,..",
+  "builtInLibrariesFolders": "C:\\Program Files (x86)\\Arduino\\libraries",
+  "builtInToolsFolders": "C:\\Program Files (x86)\\Arduino\\tools-builder,C:\\Program Files (x86)\\Arduino\\hardware\\tools\\avr,C:\\Users\\Bernd\\AppData\\Local\\Arduino15\\packages",
+  "compiler.optimization_flags": "",
+  "customBuildProperties": "build.path=d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\Build,build.warn_data_percentage=75,runtime.tools.uploader_ymodem.path=C:\\Users\\Bernd\\AppData\\Local\\Arduino15\\packages\\rak_rui\\tools\\uploader_ymodem\\1.0.0,runtime.tools.uploader_ymodem-1.0.0.path=C:\\Users\\Bernd\\AppData\\Local\\Arduino15\\packages\\rak_rui\\tools\\uploader_ymodem\\1.0.0,runtime.tools.arm-none-eabi-gcc.path=C:\\Users\\Bernd\\AppData\\Local\\Arduino15\\packages\\rak_rui\\tools\\arm-none-eabi-gcc\\9-2019q4,runtime.tools.arm-none-eabi-gcc-9-2019q4.path=C:\\Users\\Bernd\\AppData\\Local\\Arduino15\\packages\\rak_rui\\tools\\arm-none-eabi-gcc\\9-2019q4,runtime.tools.buildtime.path=C:\\Users\\Bernd\\AppData\\Local\\Arduino15\\packages\\rak_rui\\tools\\buildtime\\v0.0.0,runtime.tools.buildtime-v0.0.0.path=C:\\Users\\Bernd\\AppData\\Local\\Arduino15\\packages\\rak_rui\\tools\\buildtime\\v0.0.0",
+  "fqbn": "rak_rui:stm32:WisDuoRAK3172EvaluationBoard:debug=l0",
+  "hardwareFolders": "C:\\Program Files (x86)\\Arduino\\hardware,C:\\Users\\Bernd\\AppData\\Local\\Arduino15\\packages",
+  "otherLibrariesFolders": "D:\\Projects\\libraries",
+  "runtime.ide.version": "10819",
+  "sketchLocation": "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+}

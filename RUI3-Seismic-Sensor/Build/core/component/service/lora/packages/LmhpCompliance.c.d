@@ -1,0 +1,29 @@
+d:\\#Github\Solutions\WisBlock-Seismic-Sensor\RUI3-Seismic-Sensor\Build\core\component\service\lora\packages\LmhpCompliance.c.o: \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta\cores\STM32WLE\component\service\lora\packages\LmhpCompliance.c \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/cores/STM32WLE/external/lora/LoRaMac-node-4.4.7/src/boards/utilities.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/variants/WisDuo_RAK3172_Evaluation_Board/timer.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/cores/STM32WLE/external/STM32CubeWL/Utilities/timer/stm32_timer.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/cores/STM32WLE/external/STM32CubeWL/Drivers/CMSIS/Include/cmsis_compiler.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/cores/STM32WLE/external/STM32CubeWL/Drivers/CMSIS/Include/cmsis_gcc.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/variants/WisDuo_RAK3172_Evaluation_Board/utilities_conf.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/cores/STM32WLE/external/STM32CubeWL/Utilities/misc/stm32_mem.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/cores/STM32WLE/external/STM32CubeWL/Utilities/misc/stm32_tiny_vsnprintf.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/cores/STM32WLE/external/lora/LoRaMac-node-4.4.7/src/mac/LoRaMac.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/variants/WisDuo_RAK3172_Evaluation_Board/systime.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/cores/STM32WLE/external/STM32CubeWL/Utilities/misc/stm32_systime.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/cores/STM32WLE/external/lora/LoRaMac-node-4.4.7/src/mac/LoRaMacTypes.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/cores/STM32WLE/external/lora/LoRaMac-node-4.4.7/src/mac/region/RegionNvm.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/cores/STM32WLE/external/lora/LoRaMac-node-4.4.7/src/mac/LoRaMacTypes.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/cores/STM32WLE/external/lora/LoRaMac-node-4.4.7/src/mac/LoRaMacCryptoNvm.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/cores/STM32WLE/external/lora/LoRaMac-node-4.4.7/src/mac/secure-element-nvm.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/cores/STM32WLE/external/lora/LoRaMac-node-4.4.7/src/mac/LoRaMacClassBNvm.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/cores/STM32WLE/external/lora/LoRaMac-node-4.4.7/src/mac/LoRaMacTest.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/cores/STM32WLE/external/lora/LoRaMac-node-4.4.7/src/mac/region/Region.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/cores/STM32WLE/external/lora/LoRaMac-node-4.4.7/src/mac/region/RegionCommon.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/cores/STM32WLE/external/lora/LoRaMac-node-4.4.7/src/mac/LoRaMacHeaderTypes.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/cores/STM32WLE/external/lora/LoRaMac-node-4.4.7/src/mac/region/Region.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta\cores\STM32WLE\component\service\lora\packages\LmhPackage.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/cores/STM32WLE/external/lora/LoRaMac-node-4.4.7/src/apps/LoRaMac/common/LmHandler/LmHandlerTypes.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta\cores\STM32WLE\component\service\lora\packages\LmhpCompliance.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/cores/STM32WLE/component/udrv/system/udrv_system.h \
+ C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/cores/STM32WLE/component/udrv/timer/udrv_timer.h
