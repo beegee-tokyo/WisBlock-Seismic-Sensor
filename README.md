@@ -114,15 +114,16 @@ The data packet is encoded in an extended CayenneLPP format based on the [_**Cay
 
 The channel ID's used for the different values are:
 
-| Channel Name | Channel ID | Value |
-| --- | --- | --- |
-| LPP_CHANNEL_HUMID | 2 | RAK1901 Humidity, analog value in %RH |
-| LPP_CHANNEL_TEMP | 3 | RAK1901 Temperature, analog value in °C |
-| LPP_CHANNEL_EQ_EVENT | 43 | RAK12027 Earthquake active, boolean value, true if earthquake is active |
-| LPP_CHANNEL_EQ_SI | 44 | RAK12027 Detected SI value, analog value 1/10th in m/s |
-| LPP_CHANNEL_EQ_PGA | 45 | RAK12027 Detected PGA value, analog 10 * value in m/s2 |
-| LPP_CHANNEL_EQ_SHUTOFF | 46 | RAK12027 Shutoff alert, boolean value, true if alert is raised |
-| LPP_CHANNEL_EQ_COLLAPSE | 47 | RAK12027 Collapse alert, boolean value, true if alert is raised |
+| Channel Name            | Channel ID | Type              | Value                                                                   |    
+| ----------------------- | ---------- | ----------------- | ----------------------------------------------------------------------- |    
+| LPP_CHANNEL_BATT        | 1          | Voltage           | Battery voltage in V                                                    |
+| LPP_CHANNEL_HUMID       | 2          | Relative Humidity | RAK1901 Humidity in %RH                                                 |
+| LPP_CHANNEL_TEMP        | 3          | Temperature       | RAK1901 Temperature in °C                                               |
+| LPP_CHANNEL_EQ_EVENT    | 43         | Presence          | RAK12027 Earthquake active, boolean value, true if earthquake is active |
+| LPP_CHANNEL_EQ_SI       | 44         | Analog            | RAK12027 Detected SI value, analog value 1/10th in m/s                  |
+| LPP_CHANNEL_EQ_PGA      | 45         | Analog            | RAK12027 Detected PGA value, analog 10 * value in m/s2                  |
+| LPP_CHANNEL_EQ_SHUTOFF  | 46         | Presence          | RAK12027 Shutoff alert, boolean value, true if alert is raised          |
+| LPP_CHANNEL_EQ_COLLAPSE | 47         | Presence          | RAK12027 Collapse alert, boolean value, true if alert is raised         |
 
 
 # Example for a visualization and alert message
