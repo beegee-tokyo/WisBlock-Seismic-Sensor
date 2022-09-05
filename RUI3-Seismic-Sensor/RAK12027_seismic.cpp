@@ -13,7 +13,7 @@
 #include <Wire.h>
 #include <D7S.h> // Install the library manually from a ZIP file. Download ZIP from https://github.com/alessandro1105/D7S_Arduino_Library
 
-#define RAK12027_SLOT 2
+#define RAK12027_SLOT 3
 
 //******************************************************************//
 // RAK12027 INT1_PIN
@@ -44,11 +44,11 @@
 // #define INT1_PIN WB_IO2
 // #define INT2_PIN WB_IO1
 // #elif RAK12027_SLOT == 2 // Slot C
-#define INT1_PIN WB_IO3
-#define INT2_PIN WB_IO4
+// #define INT1_PIN WB_IO3
+// #define INT2_PIN WB_IO4
 // #elif RAK12027_SLOT == 3 // Slot D
-// #define INT1_PIN WB_IO5
-// #define INT2_PIN WB_IO6
+#define INT1_PIN WB_IO5
+#define INT2_PIN WB_IO6
 // #elif RAK12027_SLOT == 4 // Slot E
 // #define INT1_PIN WB_IO4
 // #define INT2_PIN WB_IO3

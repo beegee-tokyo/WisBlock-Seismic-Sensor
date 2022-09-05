@@ -134,4 +134,4 @@ d:\\#Github\Solutions\WisBlock-Seismic-Sensor\RUI3-Seismic-Sensor\Build\sketch\R
  D:\Projects\libraries\ArduinoJson\src/ArduinoJson/Configuration.hpp \
  D:\Projects\libraries\CayenneLPP\src/CayenneLPP.h \
  C:\Users\Bernd\AppData\Local\Arduino15\packages\rak_rui\hardware\stm32\3.5.0-beta/cores/STM32WLE/component/rui_v3_api/Wire.h \
- D:\Projects\libraries\D7S_Arduino_Library-master\src/D7S.h
+ D:\Projects\libraries\D7S_Arduino_Library\src/D7S.h

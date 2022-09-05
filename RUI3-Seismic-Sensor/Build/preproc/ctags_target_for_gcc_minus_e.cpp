@@ -36,6 +36,9 @@ char g_dev_name[64] = "RUI3 SEISMIC";
 /** Fport to be used to send data */
 uint8_t g_fport = 2;
 
+/** Number of retries in case the confirmed uplink fails */
+uint8_t g_repeat_send = 3;
+
 /** Send frequency, default is off */
 uint32_t g_send_repeat_time = 0;
 
@@ -57,7 +60,7 @@ bool has_rak1901 = false;
  * @param data Structure with the received data
 
  */
-# 46 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+# 49 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
 void receiveCallback(SERVICE_LORA_RECEIVE_T *data)
 {
  do { if ("RX-CB") Serial.printf("[%s] ", "RX-CB"); Serial.printf("RX, fP %d, DR %d, RSSI %d, SNR %d", data->Port, data->RxDatarate, data->Rssi, data->Snr); Serial.printf("\n"); } while (0); udrv_app_delay_ms(100);
@@ -79,11 +82,20 @@ void receiveCallback(SERVICE_LORA_RECEIVE_T *data)
  * @param status TX status
 
  */
-# 63 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+# 66 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
 void sendCallback(int32_t status)
 {
  if (status != 0)
  {
+  // Reend the packet
+  if (api.lorawan.send(g_solution_data.getSize(), g_solution_data.getBuffer(), g_fport, confirmed_msg_enabled, g_repeat_send))
+  {
+   do { if ("APP") Serial.printf("[%s] ", "APP"); Serial.printf("Enqueued"); Serial.printf("\n"); } while (0); udrv_app_delay_ms(100);
+  }
+  else
+  {
+   do { if ("APP") Serial.printf("[%s] ", "APP"); Serial.printf("Send fail"); Serial.printf("\n"); } while (0); udrv_app_delay_ms(100);
+  }
   fail_counter++;
   if (fail_counter == 4)
   {
@@ -105,7 +117,7 @@ void sendCallback(int32_t status)
  * @param status Join result
 
  */
-# 84 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+# 96 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
 void joinCallback(int32_t status)
 {
  if (status != 0)
@@ -126,11 +138,17 @@ void joinCallback(int32_t status)
   {
    // Start a unified C timer
    api.system.timer.start(RAK_TIMER_0, g_send_repeat_time, 
-# 103 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino" 3 4
+# 115 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino" 3 4
                                                           __null
-# 103 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+# 115 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
                                                               );
   }
+  // Send first packet in 10 seconds
+  api.system.timer.start(RAK_TIMER_1, 10000, 
+# 118 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino" 3 4
+                                            __null
+# 118 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+                                                );
  }
 }
 
@@ -141,7 +159,7 @@ void joinCallback(int32_t status)
  *
 
  */
-# 112 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+# 126 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
 void setup()
 {
  // Setup the callbacks for joined and send finished
@@ -166,7 +184,7 @@ void setup()
  // Serial.begin(115200, RAK_CUSTOM_MODE);
  // Use "normal" mode to have AT commands available
  Serial.begin(115200);
-# 153 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+# 167 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
  // For RAK3172 just wait a little bit for the USB to be ready
  udrv_app_delay_ms(5000);
 
@@ -215,7 +233,7 @@ void setup()
  *
 
  */
-# 196 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+# 210 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
 void sensor_handler(void *)
 {
  // Reset the packet
@@ -225,9 +243,12 @@ void sensor_handler(void *)
  g_solution_data.addVoltage(1 /* Base Board*/, api.system.bat.get());
 
  // Check for seismic events
- if ((earthquake_end) && (g_task_event_type != 0b0000100000000000) && (g_task_event_type != 0b0000010000000000))
+ // if ((earthquake_end) && (g_task_event_type != SEISMIC_EVENT) && (g_task_event_type != SEISMIC_ALERT))
+ if (earthquake_end)
  {
   g_solution_data.addPresence(43 /* RAK12027*/, false);
+  g_solution_data.addPresence(46 /* RAK12027*/, shutoff_alert);
+  g_solution_data.addPresence(47 /* RAK12027*/, collapse_alert);
  }
 
  // Handle Seismic Events
@@ -252,28 +273,26 @@ void sensor_handler(void *)
    do { if ("APP") Serial.printf("[%s] ", "APP"); Serial.printf("Earthquake end alert!"); Serial.printf("\n"); } while (0); udrv_app_delay_ms(100);
    read_rak12027(true);
    earthquake_end = true;
-   g_solution_data.addPresence(46 /* RAK12027*/, shutoff_alert);
    shutoff_alert = false;
-
-   g_solution_data.addPresence(47 /* RAK12027*/, collapse_alert);
    collapse_alert = false;
 
    // Reset flags
    shutoff_alert = false;
    collapse_alert = false;
 
-   // Send another packet in 10 seconds
-   api.system.timer.start(RAK_TIMER_1, 10000, 
-# 243 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino" 3 4
+   // Send another packet in 60 seconds
+   api.system.timer.start(RAK_TIMER_1, 60000, 
+# 257 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino" 3 4
                                              __null
-# 243 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+# 257 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
                                                  );
    // Restart frequent sending
    api.system.timer.start(RAK_TIMER_0, g_send_repeat_time, 
-# 245 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino" 3 4
+# 259 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino" 3 4
                                                           __null
-# 245 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+# 259 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
                                                               );
+   digitalWrite(0/*LED1*/ /* IO_SLOT*//*PA0*/, 0x0);
    break;
   default:
    // False alert
@@ -290,6 +309,7 @@ void sensor_handler(void *)
   {
   case 1:
    // Collapse alert
+   digitalWrite(0/*LED1*/ /* IO_SLOT*//*PA0*/, 0x1);
    collapse_alert = true;
    do { if ("APP") Serial.printf("[%s] ", "APP"); Serial.printf("Earthquake collapse alert!"); Serial.printf("\n"); } while (0); udrv_app_delay_ms(100);
    break;
@@ -300,6 +320,7 @@ void sensor_handler(void *)
    break;
   case 3:
    // Collapse & ShutDown alert
+   digitalWrite(0/*LED1*/ /* IO_SLOT*//*PA0*/, 0x1);
    collapse_alert = true;
    shutoff_alert = true;
    do { if ("APP") Serial.printf("[%s] ", "APP"); Serial.printf("Earthquake collapse & shutoff alert!"); Serial.printf("\n"); } while (0); udrv_app_delay_ms(100);
@@ -307,6 +328,7 @@ void sensor_handler(void *)
   default:
    // False alert
    digitalWrite(1/*LED2*/ /* IO_SLOT*//*PA1*/, 0x0);
+   digitalWrite(0/*LED1*/ /* IO_SLOT*//*PA0*/, 0x0);
    do { if ("APP") Serial.printf("[%s] ", "APP"); Serial.printf("Earthquake false alert!"); Serial.printf("\n"); } while (0); udrv_app_delay_ms(100);
    break;
   }
@@ -325,7 +347,7 @@ void sensor_handler(void *)
  do { if ("APP") Serial.printf("[%s] ", "APP"); Serial.printf("Packetsize %d", g_solution_data.getSize()); Serial.printf("\n"); } while (0); udrv_app_delay_ms(100);
 
  // Send the packet
- if (api.lorawan.send(g_solution_data.getSize(), g_solution_data.getBuffer(), g_fport, confirmed_msg_enabled))
+ if (api.lorawan.send(g_solution_data.getSize(), g_solution_data.getBuffer(), g_fport, confirmed_msg_enabled, g_repeat_send))
  {
   do { if ("APP") Serial.printf("[%s] ", "APP"); Serial.printf("Enqueued"); Serial.printf("\n"); } while (0); udrv_app_delay_ms(100);
  }
@@ -346,13 +368,13 @@ void sensor_handler(void *)
  *
 
  */
-# 313 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+# 331 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
 void loop()
 {
  /* Destroy this busy loop and use timer to do what you want instead,
 
 	 * so that the system thread can auto enter low power mode by api.system.lpm.set(1); */
-# 317 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+# 335 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
  api.system.scheduler.task.destroy();
  // api.system.sleep.all();
 }

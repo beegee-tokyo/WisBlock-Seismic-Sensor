@@ -27,7 +27,7 @@
   {
     "Sourcefile": "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\Build\\sketch\\RAK12027_seismic.cpp",
     "Include": "D7S.h",
-    "Includepath": "D:\\Projects\\libraries\\D7S_Arduino_Library-master\\src"
+    "Includepath": "D:\\Projects\\libraries\\D7S_Arduino_Library\\src"
   },
   {
     "Sourcefile": "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\Build\\sketch\\RAK12027_seismic.cpp",
@@ -60,7 +60,7 @@
     "Includepath": null
   },
   {
-    "Sourcefile": "D:\\Projects\\libraries\\D7S_Arduino_Library-master\\src\\D7S.cpp",
+    "Sourcefile": "D:\\Projects\\libraries\\D7S_Arduino_Library\\src\\D7S.cpp",
     "Include": "",
     "Includepath": null
   },

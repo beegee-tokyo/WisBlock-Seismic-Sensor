@@ -25,6 +25,9 @@ WisCayenne g_solution_data(255);
 /** Send Fail counter **/
 uint8_t join_send_fail = 0;
 
+/** Flag if RAK1901 temperature sensor is installed */
+bool has_rak1901 = false;
+
 /**
  * @brief Timer function used to avoid sending packages too often.
  *       Delays the next package by 10 seconds
@@ -100,8 +103,8 @@ bool init_app(void)
 
 	// Initialize Temperature sensor
 	MYLOG("APP", "Initialize RAK1901");
-	init_result = init_rak1901();
-	MYLOG("APP", "Result %s", init_result ? "success" : "failed");
+	has_rak1901 = init_rak1901();
+	MYLOG("APP", "Result %s", has_rak1901 ? "success" : "failed");
 
 	api_log_settings();
 
@@ -217,8 +220,11 @@ void app_event_handler(void)
 			return;
 		}
 
-		// Get temperature and humidity
-		read_rak1901();
+		// Get temperature and humidity if sensor is installed
+		if (has_rak1901)
+		{
+			read_rak1901();
+		}
 
 		MYLOG("APP", "Packetsize %d", g_solution_data.getSize());
 

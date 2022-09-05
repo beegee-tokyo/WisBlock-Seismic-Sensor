@@ -28,6 +28,9 @@ char g_dev_name[64] = "RUI3 SEISMIC";
 /** Fport to be used to send data */
 uint8_t g_fport = 2;
 
+/** Number of retries in case the confirmed uplink fails */
+uint8_t g_repeat_send = 3;
+
 /** Send frequency, default is off */
 uint32_t g_send_repeat_time = 0;
 
@@ -45,19 +48,19 @@ bool has_rak1901 = false;
  *
  * @param data Structure with the received data
  */
-#line 46 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+#line 49 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
 void receiveCallback(SERVICE_LORA_RECEIVE_T *data);
-#line 63 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+#line 66 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
 void sendCallback(int32_t status);
-#line 84 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+#line 96 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
 void joinCallback(int32_t status);
-#line 112 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+#line 126 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
 void setup();
-#line 196 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+#line 210 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
 void sensor_handler(void *);
-#line 313 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+#line 331 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
 void loop();
-#line 46 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+#line 49 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
 void receiveCallback(SERVICE_LORA_RECEIVE_T *data)
 {
 	MYLOG("RX-CB", "RX, fP %d, DR %d, RSSI %d, SNR %d", data->Port, data->RxDatarate, data->Rssi, data->Snr);
@@ -79,6 +82,15 @@ void sendCallback(int32_t status)
 {
 	if (status != 0)
 	{
+		// Reend the packet
+		if (api.lorawan.send(g_solution_data.getSize(), g_solution_data.getBuffer(), g_fport, confirmed_msg_enabled, g_repeat_send))
+		{
+			MYLOG("APP", "Enqueued");
+		}
+		else
+		{
+			MYLOG("APP", "Send fail");
+		}
 		fail_counter++;
 		if (fail_counter == 4)
 		{
@@ -117,6 +129,8 @@ void joinCallback(int32_t status)
 			// Start a unified C timer
 			api.system.timer.start(RAK_TIMER_0, g_send_repeat_time, NULL);
 		}
+		// Send first packet in 10 seconds
+		api.system.timer.start(RAK_TIMER_1, 10000, NULL);
 	}
 }
 
@@ -217,9 +231,12 @@ void sensor_handler(void *)
 	g_solution_data.addVoltage(LPP_CHANNEL_BATT, api.system.bat.get());
 
 	// Check for seismic events
-	if ((earthquake_end) && (g_task_event_type != SEISMIC_EVENT) && (g_task_event_type != SEISMIC_ALERT))
+	// if ((earthquake_end) && (g_task_event_type != SEISMIC_EVENT) && (g_task_event_type != SEISMIC_ALERT))
+	if (earthquake_end)
 	{
 		g_solution_data.addPresence(LPP_CHANNEL_EQ_EVENT, false);
+		g_solution_data.addPresence(LPP_CHANNEL_EQ_SHUTOFF, shutoff_alert);
+		g_solution_data.addPresence(LPP_CHANNEL_EQ_COLLAPSE, collapse_alert);
 	}
 
 	// Handle Seismic Events
@@ -244,20 +261,18 @@ void sensor_handler(void *)
 			MYLOG("APP", "Earthquake end alert!");
 			read_rak12027(true);
 			earthquake_end = true;
-			g_solution_data.addPresence(LPP_CHANNEL_EQ_SHUTOFF, shutoff_alert);
 			shutoff_alert = false;
-
-			g_solution_data.addPresence(LPP_CHANNEL_EQ_COLLAPSE, collapse_alert);
 			collapse_alert = false;
 
 			// Reset flags
 			shutoff_alert = false;
 			collapse_alert = false;
 
-			// Send another packet in 10 seconds
-			api.system.timer.start(RAK_TIMER_1, 10000, NULL);
+			// Send another packet in 60 seconds
+			api.system.timer.start(RAK_TIMER_1, 60000, NULL);
 			// Restart frequent sending
 			api.system.timer.start(RAK_TIMER_0, g_send_repeat_time, NULL);
+			digitalWrite(LED_GREEN, LOW);
 			break;
 		default:
 			// False alert
@@ -274,6 +289,7 @@ void sensor_handler(void *)
 		{
 		case 1:
 			// Collapse alert
+			digitalWrite(LED_GREEN, HIGH);
 			collapse_alert = true;
 			MYLOG("APP", "Earthquake collapse alert!");
 			break;
@@ -284,6 +300,7 @@ void sensor_handler(void *)
 			break;
 		case 3:
 			// Collapse & ShutDown alert
+			digitalWrite(LED_GREEN, HIGH);
 			collapse_alert = true;
 			shutoff_alert = true;
 			MYLOG("APP", "Earthquake collapse & shutoff alert!");
@@ -291,6 +308,7 @@ void sensor_handler(void *)
 		default:
 			// False alert
 			digitalWrite(LED_BLUE, LOW);
+			digitalWrite(LED_GREEN, LOW);
 			MYLOG("APP", "Earthquake false alert!");
 			break;
 		}
@@ -309,7 +327,7 @@ void sensor_handler(void *)
 	MYLOG("APP", "Packetsize %d", g_solution_data.getSize());
 
 	// Send the packet
-	if (api.lorawan.send(g_solution_data.getSize(), g_solution_data.getBuffer(), g_fport, confirmed_msg_enabled))
+	if (api.lorawan.send(g_solution_data.getSize(), g_solution_data.getBuffer(), g_fport, confirmed_msg_enabled, g_repeat_send))
 	{
 		MYLOG("APP", "Enqueued");
 	}
