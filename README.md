@@ -18,14 +18,14 @@ Using the small sized [_**RAK12027 Seismic Sensor**_](https://docs.rakwireless.c
 This example can be used as a start point to write a low power consumption seismic alarm system that can be powered by battery and solar panel. The consumption in sleep mode is ~90uA. The code is completely interrupt based to keep the MCU as much as possible in sleep mode to save battery. The collected data of an earthquake is sent over LoRaWAN, but it can be used as well with LoRa P2P. It will send data packets after the D7S has finished it's data processing with the information of the SI level, PGA, shutdown alert and collapse alert signal.
 
 # Content
-- [RAK products used in this project](#rak_products_used_in_this_project)
+- [RAK products used in this project](#rak-products-used-in-this-project)
    - [Assembly](#assembly)
-- [How it works](#how_it_works)
-- [Libraries used](#libraries_used)
-- [Seismic Sensor code for RAK4631 using the RAK-nRF52 BSP for Arduino](#seismic_sensor_code_for_rak4631_using_the_rak-nrf52_bsp_for_arduino)
-- [Seismic Sensor code for RAK4631-R and RAK3172 using the RAK RUI3 API](#seismic_sensor_code_for_rak4631-r_and_rak3172_using_the_rak_rui3_api)
-- [Data packet format](#data_packet_format)
-- [Example for a visualization and alert message](#example_for_a_visualization_and_alert_message)
+- [How it works](#how-it-works)
+- [Libraries used](#libraries-used)
+- [Seismic Sensor code for RAK4631 using the RAK-nRF52 BSP for Arduino](#seismic-sensor-code-for-rak4631-using-the-rak-nrf52-bsp-for-arduino)
+- [Seismic Sensor code for RAK4631-R and RAK3172 using the RAK RUI3 API](#seismic-sensor-code-for-rak4631-r-and-rak3172-using-the-rak-rui3-api)
+- [Data packet format](#data-packet-format)
+- [Example for a visualization and alert message](#example-for-a-visualization-and-alert-message)
 
 # RAK products used in this project
 
