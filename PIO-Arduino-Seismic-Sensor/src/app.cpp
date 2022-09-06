@@ -139,9 +139,12 @@ void app_event_handler(void)
 		g_solution_data.addVoltage(LPP_CHANNEL_BATT, batt_level_f / 1000.0);
 
 		// Check for seismic events
-		if ((earthquake_end) && !(g_task_event_type & SEISMIC_EVENT) && !(g_task_event_type & SEISMIC_ALERT))
+		// if ((earthquake_end) && !(g_task_event_type & SEISMIC_EVENT) && !(g_task_event_type & SEISMIC_ALERT))
+		if (earthquake_end)
 		{
 			g_solution_data.addPresence(LPP_CHANNEL_EQ_EVENT, false);
+			g_solution_data.addPresence(LPP_CHANNEL_EQ_SHUTOFF, shutoff_alert);
+			g_solution_data.addPresence(LPP_CHANNEL_EQ_COLLAPSE, collapse_alert);
 		}
 
 		// Handle Seismic Events

@@ -108,6 +108,8 @@ void joinCallback(int32_t status)
 		// We need at least DR3 for the packet size
 		api.lorawan.dr.set(3);
 		// MYLOG("J-CB", "DR3 %s", api.lorawan.dr.set(3) ? "OK" : "NOK");
+		// Disable ADR
+		api.lorawan.adr.set(0);
 		digitalWrite(LED_BLUE, LOW);
 		if (g_send_repeat_time != 0)
 		{
@@ -116,6 +118,8 @@ void joinCallback(int32_t status)
 		}
 		// Send first packet in 10 seconds
 		api.system.timer.start(RAK_TIMER_1, 10000, NULL);
+
+		MYLOG("APP", ">>>>> Set DR after join %d <<<<<", api.lorawan.dr.get());
 	}
 }
 
@@ -310,6 +314,13 @@ void sensor_handler(void *)
 		read_rak1901();
 	}
 	MYLOG("APP", "Packetsize %d", g_solution_data.getSize());
+
+	// Check datarate. Needs DR3 for the package size!
+	if (api.lorawan.dr.get() < 3)
+	{
+		MYLOG("APP", ">>>>> DR changed to %d <<<<<", api.lorawan.dr.get());
+		api.lorawan.dr.set(3);
+	}
 
 	// Send the packet
 	if (api.lorawan.send(g_solution_data.getSize(), g_solution_data.getBuffer(), g_fport, confirmed_msg_enabled, g_repeat_send))

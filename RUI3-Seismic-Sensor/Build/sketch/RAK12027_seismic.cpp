@@ -66,6 +66,8 @@ bool earthquake_start = false;
 
 void report_status(void)
 {
+	return;
+	
 	uint8_t current_state = D7S.getState();
 	char status_txt[128];
 	switch (current_state)

@@ -133,22 +133,26 @@ void joinCallback(int32_t status)
   // We need at least DR3 for the packet size
   api.lorawan.dr.set(3);
   // MYLOG("J-CB", "DR3 %s", api.lorawan.dr.set(3) ? "OK" : "NOK");
+  // Disable ADR
+  api.lorawan.adr.set(0);
   digitalWrite(1/*LED2*/ /* IO_SLOT*//*PA1*/, 0x0);
   if (g_send_repeat_time != 0)
   {
    // Start a unified C timer
    api.system.timer.start(RAK_TIMER_0, g_send_repeat_time, 
-# 115 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino" 3 4
+# 117 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino" 3 4
                                                           __null
-# 115 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+# 117 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
                                                               );
   }
   // Send first packet in 10 seconds
   api.system.timer.start(RAK_TIMER_1, 10000, 
-# 118 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino" 3 4
+# 120 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino" 3 4
                                             __null
-# 118 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+# 120 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
                                                 );
+
+  do { if ("APP") Serial.printf("[%s] ", "APP"); Serial.printf(">>>>> Set DR after join %d <<<<<", api.lorawan.dr.get()); Serial.printf("\n"); } while (0); udrv_app_delay_ms(100);
  }
 }
 
@@ -159,7 +163,7 @@ void joinCallback(int32_t status)
  *
 
  */
-# 126 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+# 130 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
 void setup()
 {
  // Setup the callbacks for joined and send finished
@@ -184,7 +188,7 @@ void setup()
  // Serial.begin(115200, RAK_CUSTOM_MODE);
  // Use "normal" mode to have AT commands available
  Serial.begin(115200);
-# 167 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+# 171 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
  // For RAK3172 just wait a little bit for the USB to be ready
  udrv_app_delay_ms(5000);
 
@@ -233,7 +237,7 @@ void setup()
  *
 
  */
-# 210 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+# 214 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
 void sensor_handler(void *)
 {
  // Reset the packet
@@ -282,15 +286,15 @@ void sensor_handler(void *)
 
    // Send another packet in 60 seconds
    api.system.timer.start(RAK_TIMER_1, 60000, 
-# 257 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino" 3 4
+# 261 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino" 3 4
                                              __null
-# 257 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+# 261 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
                                                  );
    // Restart frequent sending
    api.system.timer.start(RAK_TIMER_0, g_send_repeat_time, 
-# 259 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino" 3 4
+# 263 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino" 3 4
                                                           __null
-# 259 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+# 263 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
                                                               );
    digitalWrite(0/*LED1*/ /* IO_SLOT*//*PA0*/, 0x0);
    break;
@@ -346,6 +350,13 @@ void sensor_handler(void *)
  }
  do { if ("APP") Serial.printf("[%s] ", "APP"); Serial.printf("Packetsize %d", g_solution_data.getSize()); Serial.printf("\n"); } while (0); udrv_app_delay_ms(100);
 
+ // Check datarate. Needs DR3 for the package size!
+ if (api.lorawan.dr.get() < 3)
+ {
+  do { if ("APP") Serial.printf("[%s] ", "APP"); Serial.printf(">>>>> DR changed to %d <<<<<", api.lorawan.dr.get()); Serial.printf("\n"); } while (0); udrv_app_delay_ms(100);
+  api.lorawan.dr.set(3);
+ }
+
  // Send the packet
  if (api.lorawan.send(g_solution_data.getSize(), g_solution_data.getBuffer(), g_fport, confirmed_msg_enabled, g_repeat_send))
  {
@@ -368,13 +379,13 @@ void sensor_handler(void *)
  *
 
  */
-# 331 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+# 342 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
 void loop()
 {
  /* Destroy this busy loop and use timer to do what you want instead,
 
 	 * so that the system thread can auto enter low power mode by api.system.lpm.set(1); */
-# 335 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
+# 346 "d:\\#Github\\Solutions\\WisBlock-Seismic-Sensor\\RUI3-Seismic-Sensor\\RUI3-Seismic-Sensor.ino"
  api.system.scheduler.task.destroy();
  // api.system.sleep.all();
 }
