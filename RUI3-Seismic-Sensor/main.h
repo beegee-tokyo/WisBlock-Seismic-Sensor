@@ -112,6 +112,7 @@ bool standby_rak12027(void);
 extern bool shutoff_alert;
 extern bool collapse_alert;
 extern bool earthquake_end;
+extern uint8_t g_threshold;
 
 // Custom AT commands
 bool get_at_setting(uint32_t setting_type);
@@ -121,3 +122,4 @@ bool init_custom_at(void);
 /** Settings offset in flash */
 // #define GNSS_OFFSET 0x00000000		// length 1 byte
 #define SEND_FREQ_OFFSET 0x00000002 // length 4 bytes
+#define SENSITIVITY_OFFSET 0x00000008 // length 1 byte

@@ -13,7 +13,7 @@
 // Forward declarations
 int freq_send_handler(SERIAL_PORT port, char *cmd, stParam *param);
 int status_handler(SERIAL_PORT port, char *cmd, stParam *param);
-
+int sensitivity_handler(SERIAL_PORT port, char *cmd, stParam *param);
 /**
  * @brief Add send-frequency AT command
  *
@@ -25,6 +25,9 @@ bool init_custom_at(void)
 	api.system.atMode.add((char *)"SENDFREQ",
 						  (char *)"Set/Get the frequent sending time in seconds 0 = off, max 2,147,483 seconds",
 						  (char *)"SENDFREQ", freq_send_handler);
+	api.system.atMode.add((char *)"SENS",
+						  (char *)"Set the D7S sensitivity 1 = low sensitivity, 0 = high sensitivity",
+						  (char *)"SENDFREQ", sensitivity_handler);
 	return api.system.atMode.add((char *)"STATUS",
 								 (char *)"Get device information",
 								 (char *)"STATUS", status_handler);
@@ -145,6 +148,29 @@ bool get_at_setting(uint32_t setting_type)
 		// MYLOG("AT_CMD", "Send frequency found %ld", g_lorawan_settings.send_repeat_time);
 		return true;
 		break;
+	case SENSITIVITY_OFFSET:
+		if (!api.system.flash.get(SENSITIVITY_OFFSET, flash_value, 2))
+		{
+			MYLOG("AT_CMD", "Failed to read treshold value from Flash");
+			return false;
+		}
+		if (flash_value[1] != 0xAA)
+		{
+			MYLOG("AT_CMD", "Invalid treshold value, using default");
+			g_threshold = 0;
+			save_at_setting(SENSITIVITY_OFFSET);
+			return true;
+		}
+		if (flash_value[0] > 1)
+		{
+			MYLOG("AT_CMD", "No valid treshold value, set to default, read 0X%0X", flash_value[0]);
+			g_threshold = 0;
+			return false;
+		}
+		g_threshold = flash_value[0];
+		MYLOG("AT_CMD", "Found treshold value %d", flash_value[0]);
+		return true;
+		break;
 	default:
 		return false;
 	}
@@ -181,6 +207,11 @@ bool save_at_setting(uint32_t setting_type)
 		wr_result = api.system.flash.set(SEND_FREQ_OFFSET, flash_value, 5);
 		// MYLOG("AT_CMD", "Writing %s", wr_result ? "Success" : "Fail");
 		return wr_result;
+		break;
+	case SENSITIVITY_OFFSET:
+		flash_value[0] = g_threshold;
+		flash_value[1] = 0xAA;
+		return api.system.flash.set(SENSITIVITY_OFFSET, flash_value, 2);
 		break;
 	default:
 		return false;
@@ -287,5 +318,51 @@ int status_handler(SERIAL_PORT port, char *cmd, stParam *param)
 	{
 		return AT_PARAM_ERROR;
 	}
+	return AT_OK;
+}
+
+int sensitivity_handler(SERIAL_PORT port, char *cmd, stParam *param)
+{
+	if (param->argc == 1 && !strcmp(param->argv[0], "?"))
+	{
+		Serial.print(cmd);
+		Serial.printf("=%s\r\n", g_threshold == 0 ? "high" : "low");
+	}
+	else if (param->argc == 1)
+	{
+		for (int i = 0; i < strlen(param->argv[0]); i++)
+		{
+			if (!isdigit(*(param->argv[0] + i)))
+			{
+				MYLOG("AT_CMD", "%d is no digit", i);
+				return AT_PARAM_ERROR;
+			}
+		}
+
+		uint8_t new_threshold = strtoul(param->argv[0], NULL, 10);
+
+		if (new_threshold > 1)
+		{
+			return AT_PARAM_ERROR;
+		}
+
+		g_threshold = new_threshold;
+
+		// MYLOG("AT_CMD", "New frequency %ld", g_lorawan_settings.send_repeat_time);
+		// Set new treshold
+		api.system.timer.stop(RAK_TIMER_0);
+		if (g_send_repeat_time != 0)
+		{
+			// Restart the timer
+			api.system.timer.start(RAK_TIMER_0, g_send_repeat_time, NULL);
+		}
+		// Save custom settings
+		save_at_setting(SEND_FREQ_OFFSET);
+	}
+	else
+	{
+		return AT_PARAM_ERROR;
+	}
+
 	return AT_OK;
 }

@@ -63,10 +63,12 @@ bool collapse_alert = false;
 bool earthquake_end = true;
 bool earthquake_start = false;
 
+uint8_t g_threshold = 0;
+
 void report_status(void)
 {
 	return;
-	
+
 	uint8_t current_state = D7S.getState();
 	char status_txt[128];
 	switch (current_state)
@@ -162,8 +164,8 @@ bool init_rak12027(void)
 		return false;
 	}
 
-	// Set low threshold
-	D7S.setThreshold(THRESHOLD_LOW);
+	// Set threshold
+	D7S.setThreshold((d7s_threshold)g_threshold);
 
 	//--- RESETTING EVENTS ---
 	// reset the events shutoff/collapse memorized into the D7S
@@ -305,4 +307,9 @@ void read_rak12027(bool add_values)
 	}
 	MYLOG("SEIS", "SI level %.4f %.4f", currentSI, lastSI);
 	MYLOG("SEIS", "PGA level %.4f %.4f", currentPGA, lastPGA);
+}
+
+void set_threshold_rak12027(void)
+{
+	D7S.setThreshold((d7s_threshold)g_threshold);
 }

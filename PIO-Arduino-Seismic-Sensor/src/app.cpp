@@ -28,6 +28,9 @@ uint8_t join_send_fail = 0;
 /** Flag if RAK1901 temperature sensor is installed */
 bool has_rak1901 = false;
 
+/** Flag if we rejoined the network after transmission error */
+bool rejoin_network = false;
+
 /**
  * @brief Timer function used to avoid sending packages too often.
  *       Delays the next package by 10 seconds
@@ -131,102 +134,111 @@ void app_event_handler(void)
 			restart_advertising(15);
 		}
 #endif
-		// Reset the packet
-		g_solution_data.reset();
 
-		// Get battery level
-		float batt_level_f = read_batt();
-		g_solution_data.addVoltage(LPP_CHANNEL_BATT, batt_level_f / 1000.0);
+		if (!rejoin_network)
+		{ // Reset the packet
+			g_solution_data.reset();
 
-		// Check for seismic events
-		// if ((earthquake_end) && !(g_task_event_type & SEISMIC_EVENT) && !(g_task_event_type & SEISMIC_ALERT))
-		if (earthquake_end)
-		{
-			g_solution_data.addPresence(LPP_CHANNEL_EQ_EVENT, false);
-			g_solution_data.addPresence(LPP_CHANNEL_EQ_SHUTOFF, shutoff_alert);
-			g_solution_data.addPresence(LPP_CHANNEL_EQ_COLLAPSE, collapse_alert);
-		}
-
-		// Handle Seismic Events
-		if ((g_task_event_type & SEISMIC_EVENT) == SEISMIC_EVENT)
-		{
-			MYLOG("APP", "Earthquake event");
-			g_task_event_type &= N_SEISMIC_EVENT;
-			switch (check_event_rak12027(false))
+			// Check for seismic events
+			// if ((earthquake_end) && !(g_task_event_type & SEISMIC_EVENT) && !(g_task_event_type & SEISMIC_ALERT))
+			if (earthquake_end)
 			{
-			case 4:
-				// Earthquake start
-				MYLOG("APP", "Earthquake start alert!");
-				read_rak12027(false);
-				earthquake_end = false;
-				g_solution_data.addPresence(LPP_CHANNEL_EQ_EVENT, true);
-				// Make sure no packet is sent while analyzing
-				api_timer_stop();
-				return;
-				break;
-			case 5:
-				// Earthquake end
-				MYLOG("APP", "Earthquake end alert!");
-				read_rak12027(true);
-				earthquake_end = true;
+				g_solution_data.addPresence(LPP_CHANNEL_EQ_EVENT, false);
 				g_solution_data.addPresence(LPP_CHANNEL_EQ_SHUTOFF, shutoff_alert);
-				shutoff_alert = false;
-
 				g_solution_data.addPresence(LPP_CHANNEL_EQ_COLLAPSE, collapse_alert);
-				collapse_alert = false;
-
-				// Reset flags
-				shutoff_alert = false;
-				collapse_alert = false;
-				// Send another packet in 30 seconds
-				delayed_sending.setPeriod(30000);
-				delayed_sending.start();
-				// Restart frequent sending
-				api_timer_restart(g_lorawan_settings.send_repeat_time);
-				break;
-			default:
-				// False alert
-				earthquake_end = true;
-				MYLOG("APP", "Earthquake false alert!");
-				return;
-				break;
 			}
-		}
 
-		if ((g_task_event_type & SEISMIC_ALERT) == SEISMIC_ALERT)
-		{
-			g_task_event_type &= N_SEISMIC_ALERT;
-			switch (check_event_rak12027(true))
+			// Handle Seismic Events
+			if ((g_task_event_type & SEISMIC_EVENT) == SEISMIC_EVENT)
 			{
-			case 1:
-				// Collapse alert
-				collapse_alert = true;
-				MYLOG("APP", "Earthquake collapse alert!");
-				break;
-			case 2:
-				// ShutDown alert
-				shutoff_alert = true;
-				MYLOG("APP", "Earthquake shutoff alert!");
-				break;
-			case 3:
-				// Collapse & ShutDown alert
-				collapse_alert = true;
-				shutoff_alert = true;
-				MYLOG("APP", "Earthquake collapse & shutoff alert!");
-				break;
-			default:
-				// False alert
-				digitalWrite(LED_BLUE, LOW);
-				MYLOG("APP", "Earthquake false alert!");
-				break;
-			}
-			return;
-		}
+				MYLOG("APP", "Earthquake event");
+				g_task_event_type &= N_SEISMIC_EVENT;
+				switch (check_event_rak12027(false))
+				{
+				case 4:
+					// Earthquake start
+					MYLOG("APP", "Earthquake start alert!");
+					read_rak12027(false);
+					earthquake_end = false;
+					g_solution_data.addPresence(LPP_CHANNEL_EQ_EVENT, true);
+					// Make sure no packet is sent while analyzing
+					api_timer_stop();
+					delayed_sending.stop();
+					return;
+					break;
+				case 5:
+					// Earthquake end
+					MYLOG("APP", "Earthquake end alert!");
+					read_rak12027(true);
+					earthquake_end = true;
+					g_solution_data.addPresence(LPP_CHANNEL_EQ_SHUTOFF, shutoff_alert);
+					shutoff_alert = false;
 
-		// Get temperature and humidity if sensor is installed
-		if (has_rak1901)
+					g_solution_data.addPresence(LPP_CHANNEL_EQ_COLLAPSE, collapse_alert);
+					collapse_alert = false;
+
+					// Reset flags
+					shutoff_alert = false;
+					collapse_alert = false;
+					// Send another packet in 1 minute
+					delayed_sending.setPeriod(60000);
+					delayed_sending.start();
+					// Restart frequent sending
+					api_timer_restart(g_lorawan_settings.send_repeat_time);
+					break;
+				default:
+					// False alert
+					earthquake_end = true;
+					MYLOG("APP", "Earthquake false alert!");
+					return;
+					break;
+				}
+			}
+
+			if ((g_task_event_type & SEISMIC_ALERT) == SEISMIC_ALERT)
+			{
+				g_task_event_type &= N_SEISMIC_ALERT;
+				switch (check_event_rak12027(true))
+				{
+				case 1:
+					// Collapse alert
+					collapse_alert = true;
+					MYLOG("APP", "Earthquake collapse alert!");
+					break;
+				case 2:
+					// ShutDown alert
+					shutoff_alert = true;
+					MYLOG("APP", "Earthquake shutoff alert!");
+					break;
+				case 3:
+					// Collapse & ShutDown alert
+					collapse_alert = true;
+					shutoff_alert = true;
+					MYLOG("APP", "Earthquake collapse & shutoff alert!");
+					break;
+				default:
+					// False alert
+					digitalWrite(LED_BLUE, LOW);
+					MYLOG("APP", "Earthquake false alert!");
+					break;
+				}
+				return;
+			}
+
+			// Get battery level
+			float batt_level_f = read_batt();
+			g_solution_data.addVoltage(LPP_CHANNEL_BATT, batt_level_f / 1000.0);
+
+			// Get temperature and humidity if sensor is installed
+			if (has_rak1901)
+			{
+				read_rak1901();
+			}
+		}
+		else
 		{
-			read_rak1901();
+			rejoin_network = false;
+			MYLOG("APP", "Retry last packet after re-join");
 		}
 
 		MYLOG("APP", "Packetsize %d", g_solution_data.getSize());
@@ -242,10 +254,36 @@ void app_event_handler(void)
 			case LMH_BUSY:
 				MYLOG("APP", "LoRa transceiver is busy");
 				AT_PRINTF("+EVT:BUSY\n");
+
+				/// \todo if 10 times busy, restart the node
+				join_send_fail++;
+				if (join_send_fail == 10)
+				{
+					// Too many failed send attempts, reset node and try to rejoin
+					delay(100);
+					api_reset();
+				}
+
+				///  \todo try to restart LoRaWAN stack
+				rejoin_network = true;
+				init_lorawan();
 				break;
 			case LMH_ERROR:
 				AT_PRINTF("+EVT:SIZE_ERROR\n");
 				MYLOG("APP", "Packet error, too big to send with current DR");
+
+				/// \todo if 10 times busy, restart the node
+				join_send_fail++;
+				if (join_send_fail == 10)
+				{
+					// Too many failed send attempts, reset node and try to rejoin
+					delay(100);
+					api_reset();
+				}
+
+				///  \todo try to restart LoRaWAN stack
+				rejoin_network = true;
+				init_lorawan();
 				break;
 			}
 		}
