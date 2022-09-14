@@ -60,6 +60,9 @@ bool collapse_alert = false;
 bool earthquake_end = true;
 bool earthquake_start = false;
 
+float savedSI = 0.0f;
+float savedPGA = 0.0f;
+
 void report_status(void)
 {
 	uint8_t current_state = D7S.getState();
@@ -165,8 +168,10 @@ bool init_rak12027(void)
 	//--- READY TO GO ---
 	MYLOG("SEIS", "Listening for earthquakes!");
 
+#if MY_DEBUG > 0
 	//--- Report status
 	report_status();
+#endif
 
 	//--- INTERRUPT SETTINGS ---
 	// registering event handler
@@ -223,8 +228,11 @@ bool calib_rak12027(void)
 uint8_t check_event_rak12027(bool is_int1)
 {
 	MYLOG("SEIS", "Check Event");
+
+#if MY_DEBUG > 0
 	//--- Report status
 	report_status();
+#endif
 
 	uint8_t return_val = 0;
 	if (is_int1)
@@ -266,15 +274,20 @@ uint8_t check_event_rak12027(bool is_int1)
  * @brief Read latest saved SI and PGA values
  *
  * @param add_values if true, values will be added to payload, false will just read
+ * @return true new values recorded
+ * @return values are same as last reading, might be false alert
  */
-void read_rak12027(bool add_values)
+bool read_rak12027(bool add_values)
 {
 	// Seismic Intensity vs PGA
 	// I = 2.14 log10 (PGV) + 1.89
 
 	MYLOG("SEIS", "Read values");
+
+#if MY_DEBUG > 0
 	//--- Report status
 	report_status();
+#endif
 
 	// get information about the current earthquake
 	float currentSI = D7S.getInstantaneusSI();
@@ -283,11 +296,24 @@ void read_rak12027(bool add_values)
 	float lastSI = D7S.getLastestSI(0);
 	float lastPGA = D7S.getLastestPGA(0);
 
-	// for (int idx = 0; idx < 5; idx++)
-	// {
-	// 	MYLOG("SEIS", "SI level at %d %.4f", idx, D7S.getLastestSI(idx));
-	// 	MYLOG("SEIS", "PGA level at %d %.4f", idx, D7S.getLastestPGA(idx));
-	// }
+	for (int idx = 0; idx < 5; idx++)
+	{
+		MYLOG("SEIS", "SI level at %d %.4f", idx, D7S.getLastestSI(idx));
+		MYLOG("SEIS", "PGA level at %d %.4f", idx, D7S.getLastestPGA(idx));
+	}
+
+	if ((savedSI != 0.0) && (savedPGA != 0.0))
+	{
+		if ((savedSI == lastSI) && (savedPGA == lastPGA))
+		{
+			MYLOG("SEIS", "Same as last value, false alert?");
+			MYLOG("SEIS", "SI level old %.4f new %.4f", savedSI, lastSI);
+			MYLOG("SEIS", "PGA level old %.4f new %.4f", savedPGA, lastPGA);
+			// return false;
+		}
+	}
+	savedSI = lastSI;
+	savedPGA = lastPGA;
 
 	if (add_values)
 	{
@@ -295,6 +321,7 @@ void read_rak12027(bool add_values)
 		g_solution_data.addAnalogInput(LPP_CHANNEL_EQ_SI, lastSI * 10.0);
 		g_solution_data.addAnalogInput(LPP_CHANNEL_EQ_PGA, lastPGA * 10.0);
 	}
-	MYLOG("SEIS", "SI level %.4f %.4f", currentSI, lastSI);
-	MYLOG("SEIS", "PGA level %.4f %.4f", currentPGA, lastPGA);
+	MYLOG("SEIS", "SI level %.4f", lastSI);
+	MYLOG("SEIS", "PGA level %.4f", lastPGA);
+	return true;
 }

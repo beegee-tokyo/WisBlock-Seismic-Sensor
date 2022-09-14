@@ -249,6 +249,9 @@ void sensor_handler(void *)
 			// Earthquake end
 			MYLOG("APP", "Earthquake end alert!");
 			read_rak12027(true);
+			g_solution_data.addPresence(LPP_CHANNEL_EQ_SHUTOFF, shutoff_alert);
+			g_solution_data.addPresence(LPP_CHANNEL_EQ_COLLAPSE, collapse_alert);
+
 			earthquake_end = true;
 			shutoff_alert = false;
 			collapse_alert = false;

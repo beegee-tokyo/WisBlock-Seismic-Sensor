@@ -136,11 +136,13 @@ void read_rak1901(void);
 /** Seismic sensor stuff */
 bool init_rak12027(void);
 bool calib_rak12027(void);
-void read_rak12027(bool add_values);
+bool read_rak12027(bool add_values);
 uint8_t check_event_rak12027(bool is_int1);
 extern bool shutoff_alert;
 extern bool collapse_alert;
 extern bool earthquake_end;
+extern float savedSI;
+extern float savedPGA;
 
 /** Battery level uinion */
 union batt_s

@@ -22,8 +22,10 @@ This example can be used as a start point to write a low power consumption seism
    - [Assembly](#assembly)
 - [How it works](#how-it-works)
 - [Libraries used](#libraries-used)
-- [Seismic Sensor code for RAK4631 using the RAK-nRF52 BSP for Arduino](#seismic-sensor-code-for-rak4631-using-the-rak-nrf52-bsp-for-arduino)
-- [Seismic Sensor code for RAK4631-R and RAK3172 using the RAK RUI3 API](#seismic-sensor-code-for-rak4631-r-and-rak3172-using-the-rak-rui3-api)
+- [Source Code](#source-code)
+   - [Seismic Sensor code for RAK4631 using the RAK-nRF52 BSP for Arduino](#seismic-sensor-code-for-rak4631-using-the-rak-nrf52-bsp-for-arduino)
+   - [Seismic Sensor code for RAK4631-R and RAK3172 using the RAK RUI3 API](#seismic-sensor-code-for-rak4631-r-and-rak3172-using-the-rak-rui3-api)
+   - [Setup of the RAK12027 Seismic Sensor](#setup_of_the_rak12027_seismic_sensor)
 - [Data packet format](#data-packet-format)
 - [Example for a visualization and alert message](#example-for-a-visualization-and-alert-message)
 
@@ -87,7 +89,9 @@ These two libraries can be installed with the Arduino Library Manager.
 
 The Arduino version uses in addition the [_**WisBlock-API**_](https://github.com/beegee-tokyo/WisBlock-API), which can be installed with the Arduino Library Manager as well.
 
-# Seismic Sensor code for RAK4631 using the RAK-nRF52 BSP for Arduino
+## Source Code
+
+## Seismic Sensor code for RAK4631 using the RAK-nRF52 BSP for Arduino
 
 The Arduino code is based on the [_**WisBlock-API**_](https://github.com/beegee-tokyo/WisBlock-API), an event driven framework that handles all communication tasks in the background and just waits for a timer or external interrupt to wake up.    
 The provided code is for PlatformIO, but can easily be changed to work in the Arduino IDE.
@@ -103,10 +107,85 @@ If using Arduino IDE, the correct assignment has to be done in the **`RAK12027_s
 
 The Arduino based firmware has an AT command interface, the available AT commands can be found in the [_**AT Command Manual**_](https://docs.rakwireless.com/Product-Categories/WisBlock/RAK10700/AT-Command-Manual/)
 
-# Seismic Sensor code for RAK4631-R and RAK3172 using the RAK RUI3 API
+## Seismic Sensor code for RAK4631-R and RAK3172 using the RAK RUI3 API
 
 The RUI3 based code is working on the RAK4631-R and RAK3172 modules without any change in the code.    
 The assignment of the D7S interrupts INT1 and INT2 need to be assigned in the **`RAK12027_seismic.cpp`** file.
+
+## Setup of the RAK12027 Seismic Sensor
+
+The functions to setup the sensor and handle the sensor interrupts are nearly the same for Arduino and RUI3. The main difference is how the interrupt handlers wake up the MCU to check the source of the interrupts.
+
+In the **`init_rak120271()** function the sensor is initialized and calibrated. The calibration is necessary, as the sensor will determine his horizontal position. This is required for both the earthquake detection and the collapse alert.    
+This function assigns as well the interrupt handlers for the two interrupt sources from the D7S sensor.    
+
+For Arduino, the two interrupt handlers wake up the loop by releasing a semaphore with the **`api_wake_loop()`** call. They set as well the reason for the wakeup, so that it can be handled in the application.
+```cpp
+/**
+ * @brief Callback for INT 1
+ * Wakes up application with signal SEISMIC_ALERT
+ * Activated on Collapse and Shutoff signals
+ *
+ */
+void d7s_int1_handler(void)
+{
+	api_wake_loop(STATUS | SEISMIC_ALERT);
+}
+
+/**
+ * @brief Callback for INT 2
+ * Wakes up application with signal SEISMIC_EVENT
+ * Activated on Earthquake start and end
+ *
+ */
+void d7s_int2_handler(void)
+{
+	if (digitalRead(INT2_PIN) == LOW)
+	{
+		digitalWrite(LED_BLUE, HIGH);
+	}
+	else
+	{
+		digitalWrite(LED_BLUE, LOW);
+	}
+	api_wake_loop(STATUS | SEISMIC_EVENT);
+}
+```
+
+As RUI3 doesn't support semaphores and tasks, the interrupt handlers call directly the **`sensor_handler()`** function.
+```cpp
+/**
+ * @brief Callback for INT 1
+ * Wakes up application with signal SEISMIC_ALERT
+ * Activated on Collapse and Shutoff signals
+ *
+ */
+void d7s_int1_handler(void)
+{
+	g_task_event_type = SEISMIC_ALERT;
+	sensor_handler(NULL);
+}
+
+/**
+ * @brief Callback for INT 2
+ * Wakes up application with signal SEISMIC_EVENT
+ * Activated on Earthquake start and end
+ *
+ */
+void d7s_int2_handler(void)
+{
+	if (digitalRead(INT2_PIN) == LOW)
+	{
+		digitalWrite(LED_BLUE, HIGH);
+	}
+	else
+	{
+		digitalWrite(LED_BLUE, LOW);
+	}
+	g_task_event_type = SEISMIC_EVENT;
+	sensor_handler(NULL);
+}
+```
 
 # Data packet format
 
@@ -125,6 +204,37 @@ The channel ID's used for the different values are:
 | LPP_CHANNEL_EQ_SHUTOFF  | 46         | Presence          | RAK12027 Shutoff alert, boolean value, true if alert is raised          |
 | LPP_CHANNEL_EQ_COLLAPSE | 47         | Presence          | RAK12027 Collapse alert, boolean value, true if alert is raised         |
 
+To get a higher precision the SI and PGA values are multiplied by 10 before sending them. The Cayenne LPP format supports only 0.01 precision. The values must be divided by 10 to get the real values.
+
+The packet sent out displayed as hex values looks like this:
+0x2b 0x66 0x01 0x2c 0x02 0x00 0xab 0x2d 0x02 0x19 0x28 0x2e 0x66 0x01 0x2f 0x66 0x00 0x01 0x74 0x01 0x9b 0x02 0x68 0x77 0x03 0x67 0x01 0x81
+
+| Bytes | Meaning | Value in Hex | Value |
+| -- | -- | -- | -- |
+| 1 | Channel ID 43 for EQ event | 0x2b | |
+| 2 | Channel type for presence | 0x66 | |
+| 3 | Status of presence 0 = off, 1 = on | 0x01 | ON |
+| 4 | Channel ID 44 for SI value | 0x2c | |
+| 5 | Channel type for analog value | 0x02 | |
+| 6, 7 | SI value | 0x00 0xab | 1.71 = 0.171 m/s|
+| 8 | Channel ID 44 for PGA value | 0x2d | | 
+| 9 | Channel type for analog value | 0x02 | | 
+| 10, 11 | PGA value | 0x19 0x28 | 64.4  = 6.44 m/s^2 |
+| 12 | Channel ID 46 for Shutoff event | 0x2e | |
+| 13 | Channel type for presence | 0x66 | |
+| 14 | Status of presence 0 = off, 1 = on | 0x01 | ON |
+| 15 | Channel ID 47 for Collapse event | 0x2f | |
+| 16 | Channel type for presence | 0x66 | |
+| 17 | Status of presence 0 = off, 1 = on | 0x00 | OFF |
+| 18 | Channel ID 1 for battery voltage | 0x01 | |
+| 19 | Channel type for voltage | 0x74 | |
+| 20, 21 | Voltage level | 0x01 0x9b | 4.11V |
+| 22 | Channel ID 2 for humidity | 0x02 | |
+| 23 | Channel type for analog value | 0x68 | |
+| 24 | Humidity value | 0x77 | 59.5 %RH |
+| 25 | Channel ID 3 for temperature | 0x03 | | 
+| 26 | Channel type for temperature | 0x67 | | 
+| 27, 28 | temperature value | 0x01 0x81 | 38.5 deg C |
 
 # Example for a visualization and alert message
 

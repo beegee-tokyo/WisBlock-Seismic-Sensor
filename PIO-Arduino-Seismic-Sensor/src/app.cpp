@@ -23,7 +23,7 @@ char g_ble_dev_name[10] = "RAK-SEISM";
 WisCayenne g_solution_data(255);
 
 /** Send Fail counter **/
-uint8_t join_send_fail = 0;
+uint8_t join_or_send_fail = 0;
 
 /** Flag if RAK1901 temperature sensor is installed */
 bool has_rak1901 = false;
@@ -146,6 +146,8 @@ void app_event_handler(void)
 				g_solution_data.addPresence(LPP_CHANNEL_EQ_EVENT, false);
 				g_solution_data.addPresence(LPP_CHANNEL_EQ_SHUTOFF, shutoff_alert);
 				g_solution_data.addPresence(LPP_CHANNEL_EQ_COLLAPSE, collapse_alert);
+				g_solution_data.addAnalogInput(LPP_CHANNEL_EQ_SI, savedSI * 10.0);
+				g_solution_data.addAnalogInput(LPP_CHANNEL_EQ_PGA, savedPGA * 10.0);
 			}
 
 			// Handle Seismic Events
@@ -172,10 +174,7 @@ void app_event_handler(void)
 					read_rak12027(true);
 					earthquake_end = true;
 					g_solution_data.addPresence(LPP_CHANNEL_EQ_SHUTOFF, shutoff_alert);
-					shutoff_alert = false;
-
 					g_solution_data.addPresence(LPP_CHANNEL_EQ_COLLAPSE, collapse_alert);
-					collapse_alert = false;
 
 					// Reset flags
 					shutoff_alert = false;
@@ -256,8 +255,8 @@ void app_event_handler(void)
 				AT_PRINTF("+EVT:BUSY\n");
 
 				/// \todo if 10 times busy, restart the node
-				join_send_fail++;
-				if (join_send_fail == 10)
+				join_or_send_fail++;
+				if (join_or_send_fail == 10)
 				{
 					// Too many failed send attempts, reset node and try to rejoin
 					delay(100);
@@ -273,8 +272,8 @@ void app_event_handler(void)
 				MYLOG("APP", "Packet error, too big to send with current DR");
 
 				/// \todo if 10 times busy, restart the node
-				join_send_fail++;
-				if (join_send_fail == 10)
+				join_or_send_fail++;
+				if (join_or_send_fail == 10)
 				{
 					// Too many failed send attempts, reset node and try to rejoin
 					delay(100);
@@ -335,7 +334,7 @@ void lora_data_handler(void)
 		{
 			MYLOG("APP", "Successfully joined network");
 			// Reset join failed counter
-			join_send_fail = 0;
+			join_or_send_fail = 0;
 
 			// // Force a sensor reading in 10 seconds
 			delayed_sending.setPeriod(10000);
@@ -353,8 +352,8 @@ void lora_data_handler(void)
 				restart_advertising(15);
 			}
 
-			join_send_fail++;
-			if (join_send_fail == 10)
+			join_or_send_fail++;
+			if (join_or_send_fail == 10)
 			{
 				// Too many failed join requests, reset node and try to rejoin
 				delay(100);
