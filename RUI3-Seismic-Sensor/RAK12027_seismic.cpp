@@ -13,7 +13,7 @@
 #include <Wire.h>
 #include <D7S.h> // Install the library manually from a ZIP file. Download ZIP from https://github.com/alessandro1105/D7S_Arduino_Library
 
-#define RAK12027_SLOT 3
+#define RAK12027_SLOT 2
 
 //******************************************************************//
 // RAK12027 INT1_PIN
@@ -37,25 +37,37 @@
 //******************************************************************//
 
 /** Interrupt pin, depends on slot */
-// #if RAK12027_SLOT == 0 // Slot A
-// #define INT1_PIN WB_IO1
-// #define INT2_PIN WB_IO2
-// #elif RAK12027_SLOT == 1 // Slot B
-// #define INT1_PIN WB_IO2
-// #define INT2_PIN WB_IO1
-// #elif RAK12027_SLOT == 2 // Slot C
-// #define INT1_PIN WB_IO3
-// #define INT2_PIN WB_IO4
-// #elif RAK12027_SLOT == 3 // Slot D
+// Slot A
+#if RAK12027_SLOT == 0
+#pragma message "Slot A"
+#define INT1_PIN WB_IO1
+#define INT2_PIN WB_IO2
+// Slot B
+#elif RAK12027_SLOT == 1
+#pragma message "Slot B"
+#define INT1_PIN WB_IO2
+#define INT2_PIN WB_IO1
+// Slot C
+#elif RAK12027_SLOT == 2
+#pragma message "Slot C"
+#define INT1_PIN WB_IO3
+#define INT2_PIN WB_IO4
+// Slot D
+#elif RAK12027_SLOT == 3
+#pragma message "Slot D"
 #define INT1_PIN WB_IO5
 #define INT2_PIN WB_IO6
-// #elif RAK12027_SLOT == 4 // Slot E
-// #define INT1_PIN WB_IO4
-// #define INT2_PIN WB_IO3
-// #elif RAK12027_SLOT == 5 // Slot F
-// #define INT1_PIN WB_IO6
-// #define INT2_PIN WB_IO5
-// #endif
+// Slot E
+#elif RAK12027_SLOT == 4
+#pragma message "Slot E"
+#define INT1_PIN WB_IO4
+#define INT2_PIN WB_IO3
+// Slot F
+#elif RAK12027_SLOT == 5
+#pragma message "Slot F"
+#define INT1_PIN WB_IO6
+#define INT2_PIN WB_IO5
+#endif
 
 // flag variables to handle collapse/shutoff only one time during an earthquake
 bool shutoff_alert = false;
@@ -64,6 +76,10 @@ bool earthquake_end = true;
 bool earthquake_start = false;
 
 uint8_t g_threshold = 0;
+float savedSI = 0.0f;
+float savedPGA = 0.0f;
+
+bool int_1_triggered = false;
 
 void report_status(void)
 {
@@ -103,8 +119,13 @@ void report_status(void)
  */
 void d7s_int1_handler(void)
 {
+	MYLOG("SEIS", "INT1");
 	g_task_event_type = SEISMIC_ALERT;
-	sensor_handler(NULL);
+	// api.system.timer.start(RAK_TIMER_1, 500, NULL);
+	int_1_triggered = true;
+	// sensor_handler(NULL);
+
+	// api.system.timer.start(RAK_TIMER_2, 100, NULL);
 }
 
 /**
@@ -115,16 +136,51 @@ void d7s_int1_handler(void)
  */
 void d7s_int2_handler(void)
 {
+	MYLOG("SEIS", "INT2");
 	if (digitalRead(INT2_PIN) == LOW)
 	{
 		digitalWrite(LED_BLUE, HIGH);
+		earthquake_start = true;
+		api.system.timer.start(RAK_TIMER_1, 500, NULL);
 	}
 	else
 	{
 		digitalWrite(LED_BLUE, LOW);
+		// earthquake_start = false;
 	}
 	g_task_event_type = SEISMIC_EVENT;
-	sensor_handler(NULL);
+	// sensor_handler(NULL);
+}
+
+void check_alarm(void *)
+{
+	switch (check_event_rak12027(true))
+	{
+	case 1:
+		// Collapse alert
+		digitalWrite(LED_GREEN, HIGH);
+		collapse_alert = true;
+		MYLOG("SEIS", "Earthquake collapse alert!");
+		break;
+	case 2:
+		// ShutDown alert
+		shutoff_alert = true;
+		MYLOG("SEIS", "Earthquake shutoff alert!");
+		break;
+	case 3:
+		// Collapse & ShutDown alert
+		digitalWrite(LED_GREEN, HIGH);
+		collapse_alert = true;
+		shutoff_alert = true;
+		MYLOG("SEIS", "Earthquake collapse & shutoff alert!");
+		break;
+	default:
+		// False alert
+		digitalWrite(LED_BLUE, LOW);
+		digitalWrite(LED_GREEN, LOW);
+		MYLOG("SEIS", "Earthquake false alert!");
+		break;
+	}
 }
 
 /**
@@ -177,14 +233,29 @@ bool init_rak12027(void)
 	//--- Report status
 	report_status();
 
-	//--- INTERRUPT SETTINGS ---
-	// registering event handler
-	pinMode(INT1_PIN, INPUT);
-	pinMode(INT2_PIN, INPUT);
-	attachInterrupt(INT1_PIN, d7s_int1_handler, FALLING);
-	attachInterrupt(INT2_PIN, d7s_int2_handler, CHANGE);
+	// //--- INTERRUPT SETTINGS ---
+	// // registering event handler
+	// pinMode(INT1_PIN, INPUT_PULLUP);
+	// pinMode(INT2_PIN, INPUT_PULLUP);
+	// attachInterrupt(INT1_PIN, d7s_int1_handler, FALLING); // Shutoff or Collapse interrupt
+	// attachInterrupt(INT2_PIN, d7s_int2_handler, CHANGE);  // Earthquake start/end interrupt
+
+	// Create a timer for earthquake alarm handling
+	api.system.timer.create(RAK_TIMER_2, check_alarm, RAK_TIMER_ONESHOT);
 
 	return true;
+}
+
+void enable_int_rak12027(void)
+{
+	// reset the events shutoff/collapse memorized into the D7S
+	D7S.resetEvents();
+	//--- INTERRUPT SETTINGS ---
+	// registering event handler
+	pinMode(INT1_PIN, INPUT_PULLUP);
+	pinMode(INT2_PIN, INPUT_PULLUP);
+	attachInterrupt(INT1_PIN, d7s_int1_handler, FALLING); // Shutoff or Collapse interrupt
+	attachInterrupt(INT2_PIN, d7s_int2_handler, CHANGE);  // Earthquake start/end interrupt
 }
 
 /**
@@ -266,6 +337,7 @@ uint8_t check_event_rak12027(bool is_int1)
 			if (earthquake_start)
 			{
 				return_val = 5;
+				earthquake_start = false;
 			}
 		}
 	}
@@ -298,6 +370,9 @@ void read_rak12027(bool add_values)
 	// 	MYLOG("SEIS", "SI level at %d %.4f", idx, D7S.getLastestSI(idx));
 	// 	MYLOG("SEIS", "PGA level at %d %.4f", idx, D7S.getLastestPGA(idx));
 	// }
+
+	savedSI = lastSI;
+	savedPGA = lastPGA;
 
 	if (add_values)
 	{

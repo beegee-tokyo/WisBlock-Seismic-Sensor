@@ -9,6 +9,7 @@
 		"unordered_map": "cpp",
 		"vector": "cpp",
 		"string_view": "cpp",
-		"random": "cpp"
+		"random": "cpp",
+		"initializer_list": "cpp"
 	}
 }

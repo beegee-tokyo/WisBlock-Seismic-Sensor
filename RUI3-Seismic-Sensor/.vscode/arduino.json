@@ -1,7 +1,7 @@
 {
-    "configuration": "debug=l0",
+    "configuration": "debug=l0,supportat=1",
     "board": "rak_rui:stm32:WisDuoRAK3172EvaluationBoard",
     "sketch": "RUI3-Seismic-Sensor.ino",
     "output": "Build",
-    "port": "COM20"
+    "port": "COM42"
 }

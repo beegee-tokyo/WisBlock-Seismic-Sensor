@@ -4,9 +4,9 @@
  * @brief Globals and Includes
  * @version 0.1
  * @date 2022-09-03
- * 
+ *
  * @copyright Copyright (c) 2022
- * 
+ *
  */
 #include <Arduino.h>
 
@@ -97,7 +97,7 @@ void sensor_handler(void *);
 #define LPP_CHANNEL_EQ_SHUTOFF 46	   // RAK12027
 #define LPP_CHANNEL_EQ_COLLAPSE 47	   // RAK12027
 
-	extern WisCayenne g_solution_data;
+extern WisCayenne g_solution_data;
 
 /** Temperature + Humidity stuff */
 bool init_rak1901(void);
@@ -105,14 +105,20 @@ void read_rak1901(void);
 
 /** Seismic sensor stuff */
 bool init_rak12027(void);
+void enable_int_rak12027(void);
 bool calib_rak12027(void);
 void read_rak12027(bool add_values);
 uint8_t check_event_rak12027(bool is_int1);
 bool standby_rak12027(void);
+void set_threshold_rak12027(void);
 extern bool shutoff_alert;
 extern bool collapse_alert;
+extern bool earthquake_start;
 extern bool earthquake_end;
 extern uint8_t g_threshold;
+extern float savedSI;
+extern float savedPGA;
+extern bool int_1_triggered;
 
 // Custom AT commands
 bool get_at_setting(uint32_t setting_type);
@@ -120,6 +126,6 @@ bool save_at_setting(uint32_t setting_type);
 bool init_custom_at(void);
 
 /** Settings offset in flash */
-// #define GNSS_OFFSET 0x00000000		// length 1 byte
-#define SEND_FREQ_OFFSET 0x00000002 // length 4 bytes
-#define SENSITIVITY_OFFSET 0x00000008 // length 1 byte
+// #define GNSS_OFFSET 0L		// length 1 byte
+#define SEND_FREQ_OFFSET 2L	  // length 4 bytes
+#define SENSITIVITY_OFFSET 8L // length 1 byte

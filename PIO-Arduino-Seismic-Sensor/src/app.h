@@ -5,9 +5,9 @@
  *        Will be included from main.h
  * @version 0.1
  * @date 2021-04-23
- * 
+ *
  * @copyright Copyright (c) 2021
- * 
+ *
  */
 
 #ifndef APP_H
@@ -61,10 +61,10 @@
 #endif
 
 /** Wakeup triggers for application events */
-#define SEISMIC_EVENT       0b0000100000000000
-#define N_SEISMIC_EVENT     0b1111011111111111
-#define SEISMIC_ALERT       0b0000010000000000
-#define N_SEISMIC_ALERT     0b1111101111111111
+#define SEISMIC_EVENT 0b0000100000000000
+#define N_SEISMIC_EVENT 0b1111011111111111
+#define SEISMIC_ALERT 0b0000010000000000
+#define N_SEISMIC_ALERT 0b1111101111111111
 
 // LoRaWAN stuff
 /** Include the WisBlock-API */
@@ -136,6 +136,7 @@ void read_rak1901(void);
 /** Seismic sensor stuff */
 bool init_rak12027(void);
 bool calib_rak12027(void);
+void treshold_rak12027(uint8_t new_treshold);
 bool read_rak12027(bool add_values);
 uint8_t check_event_rak12027(bool is_int1);
 extern bool shutoff_alert;
@@ -143,6 +144,26 @@ extern bool collapse_alert;
 extern bool earthquake_end;
 extern float savedSI;
 extern float savedPGA;
+extern uint8_t treshold_low;
+
+/** RTC stuff */
+bool init_rak12002(void);
+void set_rak12002(uint16_t year, uint8_t month, uint8_t date, uint8_t hour, uint8_t minute);
+void read_rak12002(void);
+extern bool has_rak12002;
+
+/** RTC date/time structure */
+struct date_time_s
+{
+	uint16_t year;
+	uint8_t month;
+	uint8_t weekday;
+	uint8_t date;
+	uint8_t hour;
+	uint8_t minute;
+	uint8_t second;
+};
+extern date_time_s g_date_time;
 
 /** Battery level uinion */
 union batt_s
@@ -150,5 +171,14 @@ union batt_s
 	uint16_t batt16 = 0;
 	uint8_t batt8[2];
 };
+
+/** AT Commands */
+void init_user_at(void);
+void save_treshold_settings(uint8_t sens_level);
+void read_treshold_settings(void);
+int at_query_treshold(void);
+int at_set_treshold(char *str);
+int at_query_rtc(void);
+int at_set_rtc(char *str);
 
 #endif

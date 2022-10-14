@@ -120,6 +120,8 @@ void joinCallback(int32_t status)
 		api.system.timer.start(RAK_TIMER_1, 10000, NULL);
 
 		MYLOG("APP", ">>>>> Set DR after join %d <<<<<", api.lorawan.dr.get());
+		MYLOG("APP", "Enable D7S interrupts");
+		enable_int_rak12027();
 	}
 }
 
@@ -172,6 +174,10 @@ void setup()
 	delay(5000);
 #endif
 
+	init_custom_at();
+	get_at_setting(SEND_FREQ_OFFSET);
+	get_at_setting(SENSITIVITY_OFFSET);
+
 	// Initialize Seismic module
 	MYLOG("SET", "Initialize RAK12027");
 	bool init_result = init_rak12027();
@@ -188,21 +194,19 @@ void setup()
 
 	digitalWrite(LED_GREEN, LOW);
 
-	init_custom_at();
-	get_at_setting(SEND_FREQ_OFFSET);
-
-	// Create a unified timer
+	// Create a timer for frequent status packets
 	api.system.timer.create(RAK_TIMER_0, sensor_handler, RAK_TIMER_PERIODIC);
+	// Create a timer for delayed sending after join
 	api.system.timer.create(RAK_TIMER_1, sensor_handler, RAK_TIMER_ONESHOT);
 
 	// Get the confirmed mode settings
 	confirmed_msg_enabled = api.lorawan.cfm.get();
 	MYLOG("SET", "Confirmed message is %s", api.lorawan.cfm.get() == 0 ? "off" : "on");
 
-	if (!(ret = api.lorawan.join()))
-	{
-		MYLOG("SET", "Join request failed! \r\n");
-	}
+	// if (!(ret = api.lorawan.join()))
+	// {
+	// 	MYLOG("SET", "Join request failed! \r\n");
+	// }
 }
 
 /**
@@ -213,103 +217,133 @@ void setup()
  */
 void sensor_handler(void *)
 {
+	bool no_earthquake_event = true;
+
 	// Reset the packet
 	g_solution_data.reset();
 
-	// Get battery level
-	g_solution_data.addVoltage(LPP_CHANNEL_BATT, api.system.bat.get());
-
 	// Check for seismic events
-	// if ((earthquake_end) && (g_task_event_type != SEISMIC_EVENT) && (g_task_event_type != SEISMIC_ALERT))
-	if (earthquake_end)
+	if (earthquake_start)
 	{
+		no_earthquake_event = false;
+		// Handle Seismic Events
+		if (g_task_event_type == SEISMIC_EVENT)
+		{
+			MYLOG("APP", "Earthquake event");
+			g_task_event_type = 0;
+			switch (check_event_rak12027(false))
+			{
+			case 4:
+				// Earthquake start
+				MYLOG("APP", "Earthquake start alert!");
+				read_rak12027(false);
+				earthquake_end = false;
+				g_solution_data.addPresence(LPP_CHANNEL_EQ_EVENT, true);
+				// Change frequency of sensor_handler call
+				api.system.timer.stop(RAK_TIMER_0);
+				api.system.timer.start(RAK_TIMER_0, 500, NULL);
+				break;
+			case 5:
+				// Earthquake end
+				MYLOG("APP", "Earthquake end alert!");
+
+				// Restart frequent sending
+				MYLOG("APP", "Restart Timer 0 with %ld ms", g_send_repeat_time);
+				api.system.timer.stop(RAK_TIMER_0);
+				api.system.timer.start(RAK_TIMER_0, g_send_repeat_time, NULL);
+
+				// Reset the packet
+				g_solution_data.reset();
+
+				// Get battery level
+				g_solution_data.addVoltage(LPP_CHANNEL_BATT, api.system.bat.get());
+
+				read_rak12027(true);
+				g_solution_data.addPresence(LPP_CHANNEL_EQ_SHUTOFF, shutoff_alert);
+				g_solution_data.addPresence(LPP_CHANNEL_EQ_COLLAPSE, collapse_alert);
+
+				// Reset flags
+				shutoff_alert = false;
+				collapse_alert = false;
+				earthquake_start = false;
+				earthquake_end = true;
+				// Send another packet in 60 seconds
+				api.system.timer.start(RAK_TIMER_1, 60000, NULL);
+				digitalWrite(LED_GREEN, LOW);
+				break;
+			default:
+				// False event
+				earthquake_end = true;
+				MYLOG("APP", "Earthquake false event!");
+				earthquake_start = false;
+				return;
+				break;
+			}
+		}
+
+		// else if (g_task_event_type == SEISMIC_ALERT)
+		if (int_1_triggered)
+		{
+			int_1_triggered = false;
+			g_task_event_type = 0;
+			switch (check_event_rak12027(true))
+			{
+			case 1:
+				// Collapse alert
+				digitalWrite(LED_GREEN, HIGH);
+				collapse_alert = true;
+				MYLOG("APP", "Earthquake collapse alert!");
+				break;
+			case 2:
+				// ShutDown alert
+				shutoff_alert = true;
+				MYLOG("APP", "Earthquake shutoff alert!");
+				break;
+			case 3:
+				// Collapse & ShutDown alert
+				digitalWrite(LED_GREEN, HIGH);
+				collapse_alert = true;
+				shutoff_alert = true;
+				MYLOG("APP", "Earthquake collapse & shutoff alert!");
+				break;
+			default:
+				// False alert
+				// digitalWrite(LED_BLUE, LOW);
+				// digitalWrite(LED_GREEN, LOW);
+				MYLOG("APP", "Earthquake false alert!");
+				break;
+			}
+		}
+		// api.system.sleep.all(1000);
+		// delay(1000);
+		// digitalWrite(LED_GREEN, !digitalRead(LED_GREEN));
+
+		if (!earthquake_end)
+		{
+			digitalWrite(LED_GREEN, !digitalRead(LED_GREEN));
+			// api.system.timer.start(RAK_TIMER_1, 500, NULL);
+			return;
+		}
+		// api.system.timer.stop(RAK_TIMER_1);
+		digitalWrite(LED_GREEN, LOW);
+		MYLOG("APP", "Earthquake end");
+	}
+
+	// if ((earthquake_end) && (g_task_event_type != SEISMIC_EVENT) && (g_task_event_type != SEISMIC_ALERT))
+	if (no_earthquake_event)
+	{
+		MYLOG("APP", "Timer Wakeup");
+		earthquake_end = false;
+
 		g_solution_data.addPresence(LPP_CHANNEL_EQ_EVENT, false);
 		g_solution_data.addPresence(LPP_CHANNEL_EQ_SHUTOFF, shutoff_alert);
 		g_solution_data.addPresence(LPP_CHANNEL_EQ_COLLAPSE, collapse_alert);
+		g_solution_data.addAnalogInput(LPP_CHANNEL_EQ_SI, savedSI * 10.0);
+		g_solution_data.addAnalogInput(LPP_CHANNEL_EQ_PGA, savedPGA * 10.0);
 	}
 
-	// Handle Seismic Events
-	if (g_task_event_type == SEISMIC_EVENT)
-	{
-		MYLOG("APP", "Earthquake event");
-		g_task_event_type = 0;
-		switch (check_event_rak12027(false))
-		{
-		case 4:
-			// Earthquake start
-			MYLOG("APP", "Earthquake start alert!");
-			read_rak12027(false);
-			earthquake_end = false;
-			g_solution_data.addPresence(LPP_CHANNEL_EQ_EVENT, true);
-			// Make sure no packet is sent while analyzing
-			api.system.timer.stop(RAK_TIMER_0);
-			return;
-			break;
-		case 5:
-			// Earthquake end
-			MYLOG("APP", "Earthquake end alert!");
-			read_rak12027(true);
-			g_solution_data.addPresence(LPP_CHANNEL_EQ_SHUTOFF, shutoff_alert);
-			g_solution_data.addPresence(LPP_CHANNEL_EQ_COLLAPSE, collapse_alert);
-
-			earthquake_end = true;
-			shutoff_alert = false;
-			collapse_alert = false;
-
-			// Reset flags
-			shutoff_alert = false;
-			collapse_alert = false;
-
-			// Send another packet in 60 seconds
-			api.system.timer.start(RAK_TIMER_1, 60000, NULL);
-			// Restart frequent sending
-			api.system.timer.start(RAK_TIMER_0, g_send_repeat_time, NULL);
-			digitalWrite(LED_GREEN, LOW);
-			break;
-		default:
-			// False alert
-			earthquake_end = true;
-			MYLOG("APP", "Earthquake false alert!");
-			return;
-			break;
-		}
-	}
-	else if (g_task_event_type == SEISMIC_ALERT)
-	{
-		g_task_event_type = 0;
-		switch (check_event_rak12027(true))
-		{
-		case 1:
-			// Collapse alert
-			digitalWrite(LED_GREEN, HIGH);
-			collapse_alert = true;
-			MYLOG("APP", "Earthquake collapse alert!");
-			break;
-		case 2:
-			// ShutDown alert
-			shutoff_alert = true;
-			MYLOG("APP", "Earthquake shutoff alert!");
-			break;
-		case 3:
-			// Collapse & ShutDown alert
-			digitalWrite(LED_GREEN, HIGH);
-			collapse_alert = true;
-			shutoff_alert = true;
-			MYLOG("APP", "Earthquake collapse & shutoff alert!");
-			break;
-		default:
-			// False alert
-			digitalWrite(LED_BLUE, LOW);
-			digitalWrite(LED_GREEN, LOW);
-			MYLOG("APP", "Earthquake false alert!");
-			break;
-		}
-		return;
-	}
-	else
-	{
-		MYLOG("APP", "Timer Wakeup");
-	}
+	// Get battery level
+	g_solution_data.addVoltage(LPP_CHANNEL_BATT, api.system.bat.get());
 
 	// Get temperature and humidity if sensor is installed
 	if (has_rak1901)

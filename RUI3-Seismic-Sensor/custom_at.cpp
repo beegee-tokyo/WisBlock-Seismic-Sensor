@@ -68,7 +68,7 @@ int freq_send_handler(SERIAL_PORT port, char *cmd, stParam *param)
 
 		g_send_repeat_time = new_send_freq * 1000;
 
-		// MYLOG("AT_CMD", "New frequency %ld", g_lorawan_settings.send_repeat_time);
+		MYLOG("AT_CMD", "New frequency %ld", g_send_repeat_time);
 		// Stop the timer
 		api.system.timer.stop(RAK_TIMER_0);
 		if (g_send_repeat_time != 0)
@@ -137,9 +137,9 @@ bool get_at_setting(uint32_t setting_type)
 			save_at_setting(SEND_FREQ_OFFSET);
 			return false;
 		}
-		// MYLOG("AT_CMD", "Read send frequency 0X%02X 0X%02X 0X%02X 0X%02X",
-		// 	  flash_value[0], flash_value[1],
-		// 	  flash_value[2], flash_value[3]);
+		MYLOG("AT_CMD", "Read send frequency 0X%02X 0X%02X 0X%02X 0X%02X",
+			  flash_value[0], flash_value[1],
+			  flash_value[2], flash_value[3]);
 		g_send_repeat_time = 0;
 		g_send_repeat_time |= flash_value[0] << 0;
 		g_send_repeat_time |= flash_value[1] << 8;
@@ -186,7 +186,7 @@ bool get_at_setting(uint32_t setting_type)
  */
 bool save_at_setting(uint32_t setting_type)
 {
-	uint8_t flash_value[16] = {0};
+	uint8_t flash_value[16] = {0xFF};
 	bool wr_result = false;
 	switch (setting_type)
 	{
@@ -196,22 +196,42 @@ bool save_at_setting(uint32_t setting_type)
 	// 	return api.system.flash.set(GNSS_OFFSET, flash_value, 2);
 	// 	break;
 	case SEND_FREQ_OFFSET:
+		// wr_result = api.system.flash.set(SEND_FREQ_OFFSET, flash_value, 5);
+		// MYLOG("AT_CMD", "Writing %s", wr_result ? "Success" : "Fail");
 		flash_value[0] = (uint8_t)(g_send_repeat_time >> 0);
 		flash_value[1] = (uint8_t)(g_send_repeat_time >> 8);
 		flash_value[2] = (uint8_t)(g_send_repeat_time >> 16);
 		flash_value[3] = (uint8_t)(g_send_repeat_time >> 24);
 		flash_value[4] = 0xAA;
-		// MYLOG("AT_CMD", "Writing send frequency 0X%02X 0X%02X 0X%02X 0X%02X ",
-		// 	  flash_value[0], flash_value[1],
-		// 	  flash_value[2], flash_value[3]);
+		MYLOG("AT_CMD", "Writing send frequency 0X%02X 0X%02X 0X%02X 0X%02X ",
+			  flash_value[0], flash_value[1],
+			  flash_value[2], flash_value[3]);
 		wr_result = api.system.flash.set(SEND_FREQ_OFFSET, flash_value, 5);
-		// MYLOG("AT_CMD", "Writing %s", wr_result ? "Success" : "Fail");
+		MYLOG("AT_CMD", "Writing %s", wr_result ? "Success" : "Fail");
+		if (!wr_result)
+		{
+			wr_result = api.system.flash.set(SEND_FREQ_OFFSET, flash_value, 5);
+			MYLOG("AT_CMD", "Writing %s", wr_result ? "Success" : "Fail");
+		}
+
+		api.system.flash.get(SEND_FREQ_OFFSET, flash_value, 5);
+		MYLOG("AT_CMD", "Readback send frequency 0X%02X 0X%02X 0X%02X 0X%02X ",
+			  flash_value[0], flash_value[1],
+			  flash_value[2], flash_value[3]);
+
 		return wr_result;
 		break;
 	case SENSITIVITY_OFFSET:
 		flash_value[0] = g_threshold;
 		flash_value[1] = 0xAA;
-		return api.system.flash.set(SENSITIVITY_OFFSET, flash_value, 2);
+		wr_result = api.system.flash.set(SENSITIVITY_OFFSET, flash_value, 2);
+		MYLOG("AT_CMD", "Writing %s", wr_result ? "Success" : "Fail");
+		if (!wr_result)
+		{
+			wr_result = api.system.flash.set(SENSITIVITY_OFFSET, flash_value, 2);
+			MYLOG("AT_CMD", "Writing %s", wr_result ? "Success" : "Fail");
+		}
+		return wr_result;
 		break;
 	default:
 		return false;
@@ -246,9 +266,12 @@ int status_handler(SERIAL_PORT port, char *cmd, stParam *param)
 	{
 		Serial.println("Device Status:");
 		value_str = api.system.hwModel.get();
+		Serial.println(value_str);
 		value_str.toUpperCase();
 		Serial.printf("Module: %s\r\n", value_str.c_str());
-		Serial.printf("Version: %s\r\n", api.system.firmwareVer.get().c_str());
+		value_str = api.system.firmwareVer.get();
+		Serial.println(value_str);
+		Serial.printf("Version: %s\r\n", value_str.c_str());
 		Serial.printf("Send time: %d s\r\n", g_send_repeat_time / 1000);
 		nw_mode = api.lorawan.nwm.get();
 		Serial.printf("Network mode %s\r\n", nwm_list[nw_mode]);
@@ -326,21 +349,24 @@ int sensitivity_handler(SERIAL_PORT port, char *cmd, stParam *param)
 	if (param->argc == 1 && !strcmp(param->argv[0], "?"))
 	{
 		Serial.print(cmd);
-		Serial.printf("=%s\r\n", g_threshold == 0 ? "high" : "low");
+		Serial.printf("=%s\r\n", g_threshold == 1 ? "high" : "low");
 	}
 	else if (param->argc == 1)
 	{
-		for (int i = 0; i < strlen(param->argv[0]); i++)
+		if (!strcmp(param->argv[0], "0") && !strcmp(param->argv[0], "1"))
 		{
-			if (!isdigit(*(param->argv[0] + i)))
-			{
-				MYLOG("AT_CMD", "%d is no digit", i);
-				return AT_PARAM_ERROR;
-			}
+			return AT_PARAM_ERROR;
 		}
 
-		uint8_t new_threshold = strtoul(param->argv[0], NULL, 10);
-
+		uint8_t new_threshold = 0;
+		if (strcmp(param->argv[0], "0"))
+		{
+			new_threshold = 0;
+		}
+		else
+		{
+			new_threshold = 1;
+		}
 		if (new_threshold > 1)
 		{
 			return AT_PARAM_ERROR;
@@ -348,16 +374,11 @@ int sensitivity_handler(SERIAL_PORT port, char *cmd, stParam *param)
 
 		g_threshold = new_threshold;
 
-		// MYLOG("AT_CMD", "New frequency %ld", g_lorawan_settings.send_repeat_time);
 		// Set new treshold
-		api.system.timer.stop(RAK_TIMER_0);
-		if (g_send_repeat_time != 0)
-		{
-			// Restart the timer
-			api.system.timer.start(RAK_TIMER_0, g_send_repeat_time, NULL);
-		}
+		set_threshold_rak12027();
+
 		// Save custom settings
-		save_at_setting(SEND_FREQ_OFFSET);
+		save_at_setting(SENSITIVITY_OFFSET);
 	}
 	else
 	{

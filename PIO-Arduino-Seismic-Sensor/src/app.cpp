@@ -28,6 +28,9 @@ uint8_t join_or_send_fail = 0;
 /** Flag if RAK1901 temperature sensor is installed */
 bool has_rak1901 = false;
 
+/** Flag if RAK12002 RTC is installed */
+bool has_rak12002 = false;
+
 /** Flag if we rejoined the network after transmission error */
 bool rejoin_network = false;
 
@@ -99,15 +102,25 @@ bool init_app(void)
 	Wire.begin();
 	Wire.setClock(400000);
 
+	// Initialize AT commands
+	init_user_at();
+
 	// Initialize Seismic module
 	MYLOG("APP", "Initialize RAK12027");
+	// Get saved treshold setting
+	read_treshold_settings();
 	init_result = init_rak12027();
-	MYLOG("APP", "Result %s", init_result ? "success" : "failed");
+	MYLOG("APP", "RAK12027 %s", init_result ? "success" : "failed");
 
 	// Initialize Temperature sensor
 	MYLOG("APP", "Initialize RAK1901");
 	has_rak1901 = init_rak1901();
-	MYLOG("APP", "Result %s", has_rak1901 ? "success" : "failed");
+	MYLOG("APP", "RAK1901 %s", has_rak1901 ? "success" : "failed");
+
+	// Initialize RTC
+	MYLOG("APP", "Initialize RAK12002");
+	has_rak12002 = init_rak12002();
+	MYLOG("APP", "RAK12002 %s", has_rak12002 ? "success" : "failed");
 
 	api_log_settings();
 
