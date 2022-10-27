@@ -11,7 +11,9 @@
 #include "app.h"
 
 #include <Wire.h>
-#include <D7S.h>
+#include <RAK12027_D7S.h> // Click here to get the library: http://librarymanager/All#RAK12027_D7S
+
+RAK_D7S D7S;
 
 //******************************************************************//
 // RAK12027 INT1_PIN
@@ -35,22 +37,28 @@
 //******************************************************************//
 
 /** Interrupt pin, depends on slot */
-#if RAK12027_SLOT == 0 // Slot A
+#if RAK12027_SLOT == A // Slot A
+#pragma message "Slot A" 
 #define INT1_PIN WB_IO1
 #define INT2_PIN WB_IO2
-#elif RAK12027_SLOT == 1 // Slot B
+#elif RAK12027_SLOT == B // Slot B
+#pragma message "Slot B"
 #define INT1_PIN WB_IO2
 #define INT2_PIN WB_IO1
-#elif RAK12027_SLOT == 2 // Slot C
+#elif RAK12027_SLOT == C // Slot C
+#pragma message "Slot C"
 #define INT1_PIN WB_IO3
 #define INT2_PIN WB_IO4
-#elif RAK12027_SLOT == 3 // Slot D
+#elif RAK12027_SLOT == D // Slot D
+#pragma message "Slot D"
 #define INT1_PIN WB_IO5
 #define INT2_PIN WB_IO6
-#elif RAK12027_SLOT == 4 // Slot E
+#elif RAK12027_SLOT == E // Slot E
+#pragma message "Slot E"
 #define INT1_PIN WB_IO4
 #define INT2_PIN WB_IO3
-#elif RAK12027_SLOT == 5 // Slot F
+#elif RAK12027_SLOT == F // Slot F
+#pragma message "Slot F"
 #define INT1_PIN WB_IO6
 #define INT2_PIN WB_IO5
 #endif

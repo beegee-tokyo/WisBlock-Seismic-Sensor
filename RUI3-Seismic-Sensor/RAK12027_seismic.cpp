@@ -11,9 +11,11 @@
 #include "main.h"
 
 #include <Wire.h>
-#include <D7S.h> // Install the library manually from a ZIP file. Download ZIP from https://github.com/alessandro1105/D7S_Arduino_Library
+#include <RAK12027_D7S.h> // Click here to get the library: http://librarymanager/All#RAK12027_D7S
 
-#define RAK12027_SLOT 2
+RAK_D7S D7S;
+
+#define RAK12027_SLOT 'C'
 
 //******************************************************************//
 // RAK12027 INT1_PIN
@@ -38,32 +40,32 @@
 
 /** Interrupt pin, depends on slot */
 // Slot A
-#if RAK12027_SLOT == 0
+#if RAK12027_SLOT == 'A'
 #pragma message "Slot A"
 #define INT1_PIN WB_IO1
 #define INT2_PIN WB_IO2
 // Slot B
-#elif RAK12027_SLOT == 1
+#elif RAK12027_SLOT == 'B'
 #pragma message "Slot B"
 #define INT1_PIN WB_IO2
 #define INT2_PIN WB_IO1
 // Slot C
-#elif RAK12027_SLOT == 2
+#elif RAK12027_SLOT == 'C'
 #pragma message "Slot C"
 #define INT1_PIN WB_IO3
 #define INT2_PIN WB_IO4
 // Slot D
-#elif RAK12027_SLOT == 3
+#elif RAK12027_SLOT == 'D'
 #pragma message "Slot D"
 #define INT1_PIN WB_IO5
 #define INT2_PIN WB_IO6
 // Slot E
-#elif RAK12027_SLOT == 4
+#elif RAK12027_SLOT == 'E'
 #pragma message "Slot E"
 #define INT1_PIN WB_IO4
 #define INT2_PIN WB_IO3
 // Slot F
-#elif RAK12027_SLOT == 5
+#elif RAK12027_SLOT == 'F'
 #pragma message "Slot F"
 #define INT1_PIN WB_IO6
 #define INT2_PIN WB_IO5
@@ -141,6 +143,7 @@ void d7s_int2_handler(void)
 	{
 		digitalWrite(LED_BLUE, HIGH);
 		earthquake_start = true;
+		// Wake the loop to handle the interrupt
 		api.system.timer.start(RAK_TIMER_1, 500, NULL);
 	}
 	else
@@ -191,6 +194,7 @@ void check_alarm(void *)
  */
 bool init_rak12027(void)
 {
+	Wire.begin();
 	// start D7S connection
 	D7S.begin();
 
@@ -221,7 +225,7 @@ bool init_rak12027(void)
 	}
 
 	// Set threshold
-	D7S.setThreshold((d7s_threshold)g_threshold);
+	D7S.setThreshold((D7S_threshold_t)g_threshold);
 
 	//--- RESETTING EVENTS ---
 	// reset the events shutoff/collapse memorized into the D7S
@@ -386,5 +390,5 @@ void read_rak12027(bool add_values)
 
 void set_threshold_rak12027(void)
 {
-	D7S.setThreshold((d7s_threshold)g_threshold);
+	D7S.setThreshold((D7S_threshold_t)g_threshold);
 }

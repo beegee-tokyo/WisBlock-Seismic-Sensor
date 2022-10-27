@@ -100,7 +100,7 @@ Depending on the Sensor Slot used, the D7S interrupts INT1 and INT2 need to be a
 
 ```
 build_flags = 
-	-DRAK12027_SLOT=2 ; 0 = Slot A, 1 = Slot B, 2 = Slot C, 3 = Slot D, 4 = Slot E, 5 = Slot F
+	-DRAK12027_SLOT=A ; A = Slot A, B = Slot B, C = Slot C, D = Slot D, E = Slot E, F = Slot F
 ```
 
 If using Arduino IDE, the correct assignment has to be done in the **`RAK12027_seismic.cpp`** file.
