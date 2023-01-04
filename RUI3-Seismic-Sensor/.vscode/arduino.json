@@ -3,5 +3,5 @@
     "board": "rak_rui:stm32:WisDuoRAK3172EvaluationBoard",
     "sketch": "RUI3-Seismic-Sensor.ino",
     "output": "Build",
-    "port": "COM42"
+    "port": "COM48"
 }

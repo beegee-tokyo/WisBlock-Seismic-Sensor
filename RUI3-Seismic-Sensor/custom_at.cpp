@@ -265,11 +265,11 @@ int status_handler(SERIAL_PORT port, char *cmd, stParam *param)
 	if (param->argc == 1 && !strcmp(param->argv[0], "?"))
 	{
 		Serial.println("Device Status:");
-		value_str = api.system.hwModel.get();
+		value_str = api.system.modelId.get();
 		Serial.println(value_str);
 		value_str.toUpperCase();
 		Serial.printf("Module: %s\r\n", value_str.c_str());
-		value_str = api.system.firmwareVer.get();
+		value_str = api.system.firmwareVersion.get();
 		Serial.println(value_str);
 		Serial.printf("Version: %s\r\n", value_str.c_str());
 		Serial.printf("Send time: %d s\r\n", g_send_repeat_time / 1000);

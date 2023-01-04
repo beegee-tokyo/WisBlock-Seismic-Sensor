@@ -15,7 +15,7 @@
 
 RAK_D7S D7S;
 
-#define RAK12027_SLOT 'C'
+#define RAK12027_SLOT 'D'
 
 //******************************************************************//
 // RAK12027 INT1_PIN
@@ -144,7 +144,8 @@ void d7s_int2_handler(void)
 		digitalWrite(LED_BLUE, HIGH);
 		earthquake_start = true;
 		// Wake the loop to handle the interrupt
-		api.system.timer.start(RAK_TIMER_1, 500, NULL);
+		MYLOG("SEIS", "TIM2");
+		api.system.timer.start(RAK_TIMER_2, 500, NULL);
 	}
 	else
 	{
@@ -195,6 +196,7 @@ void check_alarm(void *)
 bool init_rak12027(void)
 {
 	Wire.begin();
+	Wire.setClock(400000);
 	// start D7S connection
 	D7S.begin();
 
@@ -245,7 +247,7 @@ bool init_rak12027(void)
 	// attachInterrupt(INT2_PIN, d7s_int2_handler, CHANGE);  // Earthquake start/end interrupt
 
 	// Create a timer for earthquake alarm handling
-	api.system.timer.create(RAK_TIMER_2, check_alarm, RAK_TIMER_ONESHOT);
+	api.system.timer.create(RAK_TIMER_2, sensor_handler, RAK_TIMER_ONESHOT);
 
 	return true;
 }
@@ -278,17 +280,27 @@ bool calib_rak12027(void)
 	// start the initial installation procedure
 	D7S.initialize();
 	// wait until the D7S is ready (the initializing process is ended)
+	int blue_status = digitalRead(LED_BLUE);
+	int green_status = digitalRead(LED_GREEN);
+	digitalWrite(LED_BLUE, HIGH);
+	digitalWrite(LED_GREEN, LOW);
 	time_t start_wait_time = millis();
 	while (!D7S.isReady())
 	{
 		if ((millis() - start_wait_time) > 5000)
 		{
 			MYLOG("SEIS", "Timeout waiting initialization of D7S");
+			digitalWrite(LED_BLUE, blue_status);
+			digitalWrite(LED_GREEN, green_status);
 			return false;
 		}
+		digitalWrite(LED_BLUE, !digitalRead(LED_BLUE));
+		digitalWrite(LED_GREEN, !digitalRead(LED_GREEN));
 		delay(500);
 	}
 	MYLOG("SEIS", "INITIALIZED!");
+	digitalWrite(LED_BLUE, blue_status);
+	digitalWrite(LED_GREEN, green_status);
 
 	return true;
 }
