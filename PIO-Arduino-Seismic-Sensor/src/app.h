@@ -136,7 +136,7 @@ void read_rak1901(void);
 /** Seismic sensor stuff */
 bool init_rak12027(void);
 bool calib_rak12027(void);
-void treshold_rak12027(uint8_t new_treshold);
+void threshold_rak12027(uint8_t new_threshold);
 bool read_rak12027(bool add_values);
 uint8_t check_event_rak12027(bool is_int1);
 extern bool shutoff_alert;
@@ -144,7 +144,7 @@ extern bool collapse_alert;
 extern bool earthquake_end;
 extern float savedSI;
 extern float savedPGA;
-extern uint8_t treshold_low;
+extern uint8_t threshold_level;
 
 /** RTC stuff */
 bool init_rak12002(void);
@@ -174,10 +174,10 @@ union batt_s
 
 /** AT Commands */
 void init_user_at(void);
-void save_treshold_settings(uint8_t sens_level);
-void read_treshold_settings(void);
-int at_query_treshold(void);
-int at_set_treshold(char *str);
+void save_threshold_settings(uint8_t sens_level);
+void read_threshold_settings(void);
+int at_query_threshold(void);
+int at_set_threshold(char *str);
 int at_query_rtc(void);
 int at_set_rtc(char *str);
 

@@ -37,30 +37,32 @@ RAK_D7S D7S;
 //******************************************************************//
 
 /** Interrupt pin, depends on slot */
-#if RAK12027_SLOT == A // Slot A
-#pragma message "Slot A" 
+#if RAK12027_SLOT == 0 // Slot A
+#pragma message "Slot A"
 #define INT1_PIN WB_IO1
 #define INT2_PIN WB_IO2
-#elif RAK12027_SLOT == B // Slot B
+#elif RAK12027_SLOT == 1 // Slot B
 #pragma message "Slot B"
 #define INT1_PIN WB_IO2
 #define INT2_PIN WB_IO1
-#elif RAK12027_SLOT == C // Slot C
+#elif RAK12027_SLOT == 2 // Slot C
 #pragma message "Slot C"
 #define INT1_PIN WB_IO3
 #define INT2_PIN WB_IO4
-#elif RAK12027_SLOT == D // Slot D
+#elif RAK12027_SLOT == 3 // Slot D
 #pragma message "Slot D"
 #define INT1_PIN WB_IO5
 #define INT2_PIN WB_IO6
-#elif RAK12027_SLOT == E // Slot E
+#elif RAK12027_SLOT == 4 // Slot E
 #pragma message "Slot E"
 #define INT1_PIN WB_IO4
 #define INT2_PIN WB_IO3
-#elif RAK12027_SLOT == F // Slot F
+#elif RAK12027_SLOT == 5 // Slot F
 #pragma message "Slot F"
 #define INT1_PIN WB_IO6
 #define INT2_PIN WB_IO5
+else
+#pragma message "No slot defined"
 #endif
 // flag variables to handle collapse/shutoff only one time during an earthquake
 bool shutoff_alert = false;
@@ -70,8 +72,6 @@ bool earthquake_start = false;
 
 float savedSI = 0.0f;
 float savedPGA = 0.0f;
-
-uint8_t treshold_low = 0;
 
 void report_status(void)
 {
@@ -139,6 +139,9 @@ void d7s_int2_handler(void)
  */
 bool init_rak12027(void)
 {
+	// Read threshold settings from Flash
+	read_threshold_settings();
+
 	// start D7S connection
 	D7S.begin();
 
@@ -168,11 +171,11 @@ bool init_rak12027(void)
 		return false;
 	}
 
-	// Get saved treshold level
+	// Get saved threshold level
 
 	// Set low threshold
 	// D7S.setThreshold(THRESHOLD_LOW);
-	treshold_rak12027(treshold_low);
+	threshold_rak12027(threshold_level);
 
 	//--- RESETTING EVENTS ---
 	// reset the events shutoff/collapse memorized into the D7S
@@ -226,9 +229,9 @@ bool calib_rak12027(void)
 	return true;
 }
 
-void treshold_rak12027(uint8_t new_treshold)
+void threshold_rak12027(uint8_t new_threshold)
 {
-	if (new_treshold == 1)
+	if (new_threshold == 1)
 	{
 		D7S.setThreshold(THRESHOLD_LOW);
 	}

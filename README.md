@@ -87,13 +87,13 @@ For the encoding of the data packets the [_**CayenneLPP library**_](https://gith
 For the RAK1901 sensor the [_**SparkFun SHTC3 Humidity and Temperature Sensor Library**_](https://github.com/sparkfun/SparkFun_SHTC3_Arduino_Library) is used.    
 These two libraries can be installed with the Arduino Library Manager.
 
-The Arduino version uses in addition the [_**WisBlock-API**_](https://github.com/beegee-tokyo/WisBlock-API), which can be installed with the Arduino Library Manager as well.
+The Arduino version uses in addition the [_**WisBlock-API-V2**_](https://github.com/beegee-tokyo/WisBlock-API-V2), which can be installed with the Arduino Library Manager as well.
 
 ## Source Code
 
 ## Seismic Sensor code for RAK4631 using the RAK-nRF52 BSP for Arduino
 
-The Arduino code is based on the [_**WisBlock-API**_](https://github.com/beegee-tokyo/WisBlock-API), an event driven framework that handles all communication tasks in the background and just waits for a timer or external interrupt to wake up.    
+The Arduino code is based on the [_**WisBlock-API-V2**_](https://github.com/beegee-tokyo/WisBlock-API-V2), an event driven framework that handles all communication tasks in the background and just waits for a timer or external interrupt to wake up.    
 The provided code is for PlatformIO, but can easily be changed to work in the Arduino IDE.
 
 Depending on the Sensor Slot used, the D7S interrupts INT1 and INT2 need to be assigned to the correct GPIO's. This can be done in the platformio.ini files with the **`build_flags`** option:
@@ -105,7 +105,10 @@ build_flags =
 
 If using Arduino IDE, the correct assignment has to be done in the **`RAK12027_seismic.cpp`** file.
 
-The Arduino based firmware has an AT command interface, the available AT commands can be found in the [_**AT Command Manual**_](https://docs.rakwireless.com/Product-Categories/WisBlock/RAK10700/AT-Command-Manual/)
+The Arduino based firmware has an RUI3 compatible AT command interface, the available AT commands can be found in the [_**AT Command Manual**_](https://docs.rakwireless.com/RUI3/Serial-Operating-Modes/AT-Command-Manual/)
+
+_**REMARK**_
+Not all RUI3 AT commands are supported because the used LoRaWAN library is different from the RUI3 LoRaWAN stack.
 
 ## Seismic Sensor code for RAK4631-R and RAK3172 using the RAK RUI3 API
 
