@@ -68,7 +68,7 @@
 
 // LoRaWAN stuff
 /** Include the WisBlock-API */
-#include <WisBlock-API.h> // Click to install library: http://librarymanager/All#WisBlock-API
+#include <WisBlock-API-V2.h> // Click to install library: http://librarymanager/All#WisBlock-API-V2
 #include "wisblock_cayenne.h"
 // Cayenne LPP Channel numbers per sensor value
 #define LPP_CHANNEL_BATT 1			   // Base Board
