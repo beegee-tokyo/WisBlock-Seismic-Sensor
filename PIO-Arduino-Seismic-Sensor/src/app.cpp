@@ -136,6 +136,9 @@ bool init_app(void)
 
 	api_log_settings();
 
+	// Reset the packet
+	g_solution_data.reset();
+
 	return init_result;
 }
 
@@ -146,6 +149,87 @@ bool init_app(void)
  */
 void app_event_handler(void)
 {
+	// Seismic sensor alert (collapse or shut down interrupt)
+	if ((g_task_event_type & SEISMIC_ALERT) == SEISMIC_ALERT)
+	{
+		g_task_event_type &= N_SEISMIC_ALERT;
+		switch (check_event_rak12027(true))
+		{
+		case 1:
+			// Collapse alert
+			collapse_alert = true;
+			MYLOG("APP", "Earthquake collapse alert!");
+			break;
+		case 2:
+			// ShutDown alert
+			shutoff_alert = true;
+			MYLOG("APP", "Earthquake shutoff alert!");
+			break;
+		case 3:
+			// Collapse & ShutDown alert
+			collapse_alert = true;
+			shutoff_alert = true;
+			MYLOG("APP", "Earthquake collapse & shutoff alert!");
+			break;
+		default:
+			// False alert
+			digitalWrite(LED_BLUE, LOW);
+			MYLOG("APP", "Earthquake false alert!");
+			break;
+		}
+	}
+
+	// Handle Seismic Events
+	if ((g_task_event_type & SEISMIC_EVENT) == SEISMIC_EVENT)
+	{
+		MYLOG("APP", "Earthquake event");
+		g_task_event_type &= N_SEISMIC_EVENT;
+		switch (check_event_rak12027(false))
+		{
+		case 4:
+			// Earthquake start
+			MYLOG("APP", "Earthquake start alert!");
+			read_rak12027(false);
+			earthquake_end = false;
+			g_solution_data.addPresence(LPP_CHANNEL_EQ_EVENT, true);
+			// Make sure no packet is sent while analyzing
+			api_timer_stop();
+			delayed_sending.stop();
+
+			// // Request packet sending
+			// g_task_event_type = g_task_event_type | STATUS;
+
+			break;
+		case 5:
+			// Earthquake end
+			MYLOG("APP", "Earthquake end alert!");
+			read_rak12027(true);
+			earthquake_end = true;
+			g_solution_data.addPresence(LPP_CHANNEL_EQ_EVENT, true);
+			g_solution_data.addPresence(LPP_CHANNEL_EQ_SHUTOFF, shutoff_alert);
+			g_solution_data.addPresence(LPP_CHANNEL_EQ_COLLAPSE, collapse_alert);
+
+			// Reset flags
+			shutoff_alert = false;
+			collapse_alert = false;
+			// Send another packet in 1 minute
+			delayed_sending.setPeriod(60000);
+			delayed_sending.start();
+			// Restart frequent sending
+			api_timer_restart(g_lorawan_settings.send_repeat_time);
+
+			// Request packet sending
+			g_task_event_type = g_task_event_type | STATUS;
+
+			break;
+		default:
+			// False alert
+			earthquake_end = true;
+			MYLOG("APP", "Earthquake false alert!");
+			break;
+		}
+	}
+
 	// Timer triggered event
 	if ((g_task_event_type & STATUS) == STATUS)
 	{
@@ -161,92 +245,21 @@ void app_event_handler(void)
 #endif
 
 		if (!rejoin_network)
-		{ // Reset the packet
-			g_solution_data.reset();
-
+		{
 			// Check for seismic events
 			// if ((earthquake_end) && !(g_task_event_type & SEISMIC_EVENT) && !(g_task_event_type & SEISMIC_ALERT))
 			if (earthquake_end)
 			{
-				g_solution_data.addPresence(LPP_CHANNEL_EQ_EVENT, false);
 				g_solution_data.addPresence(LPP_CHANNEL_EQ_SHUTOFF, shutoff_alert);
 				g_solution_data.addPresence(LPP_CHANNEL_EQ_COLLAPSE, collapse_alert);
 				g_solution_data.addAnalogInput(LPP_CHANNEL_EQ_SI, savedSI * 10.0);
 				g_solution_data.addAnalogInput(LPP_CHANNEL_EQ_PGA, savedPGA * 10.0);
+				earthquake_end = false;
+				MYLOG("APP", "Sending earthquake end message");
 			}
-
-			// Handle Seismic Events
-			if ((g_task_event_type & SEISMIC_EVENT) == SEISMIC_EVENT)
+			else
 			{
-				MYLOG("APP", "Earthquake event");
-				g_task_event_type &= N_SEISMIC_EVENT;
-				switch (check_event_rak12027(false))
-				{
-				case 4:
-					// Earthquake start
-					MYLOG("APP", "Earthquake start alert!");
-					read_rak12027(false);
-					earthquake_end = false;
-					g_solution_data.addPresence(LPP_CHANNEL_EQ_EVENT, true);
-					// Make sure no packet is sent while analyzing
-					api_timer_stop();
-					delayed_sending.stop();
-					return;
-					break;
-				case 5:
-					// Earthquake end
-					MYLOG("APP", "Earthquake end alert!");
-					read_rak12027(true);
-					earthquake_end = true;
-					g_solution_data.addPresence(LPP_CHANNEL_EQ_SHUTOFF, shutoff_alert);
-					g_solution_data.addPresence(LPP_CHANNEL_EQ_COLLAPSE, collapse_alert);
-
-					// Reset flags
-					shutoff_alert = false;
-					collapse_alert = false;
-					// Send another packet in 1 minute
-					delayed_sending.setPeriod(60000);
-					delayed_sending.start();
-					// Restart frequent sending
-					api_timer_restart(g_lorawan_settings.send_repeat_time);
-					break;
-				default:
-					// False alert
-					earthquake_end = true;
-					MYLOG("APP", "Earthquake false alert!");
-					return;
-					break;
-				}
-			}
-
-			if ((g_task_event_type & SEISMIC_ALERT) == SEISMIC_ALERT)
-			{
-				g_task_event_type &= N_SEISMIC_ALERT;
-				switch (check_event_rak12027(true))
-				{
-				case 1:
-					// Collapse alert
-					collapse_alert = true;
-					MYLOG("APP", "Earthquake collapse alert!");
-					break;
-				case 2:
-					// ShutDown alert
-					shutoff_alert = true;
-					MYLOG("APP", "Earthquake shutoff alert!");
-					break;
-				case 3:
-					// Collapse & ShutDown alert
-					collapse_alert = true;
-					shutoff_alert = true;
-					MYLOG("APP", "Earthquake collapse & shutoff alert!");
-					break;
-				default:
-					// False alert
-					digitalWrite(LED_BLUE, LOW);
-					MYLOG("APP", "Earthquake false alert!");
-					break;
-				}
-				return;
+				g_solution_data.addPresence(LPP_CHANNEL_EQ_EVENT, false);
 			}
 
 			// Get battery level
@@ -267,54 +280,69 @@ void app_event_handler(void)
 
 		MYLOG("APP", "Packetsize %d", g_solution_data.getSize());
 
-		if (g_lpwan_has_joined)
+		if (g_lorawan_settings.lorawan_enable)
 		{
-			lmh_error_status result = send_lora_packet(g_solution_data.getBuffer(), g_solution_data.getSize());
-			switch (result)
+			if (g_lpwan_has_joined)
 			{
-			case LMH_SUCCESS:
-				MYLOG("APP", "Packet enqueued");
-				break;
-			case LMH_BUSY:
-				MYLOG("APP", "LoRa transceiver is busy");
-				AT_PRINTF("+EVT:BUSY\n");
-
-				/// \todo if 10 times busy, restart the node
-				join_or_send_fail++;
-				if (join_or_send_fail == 10)
+				lmh_error_status result = send_lora_packet(g_solution_data.getBuffer(), g_solution_data.getSize());
+				switch (result)
 				{
-					// Too many failed send attempts, reset node and try to rejoin
-					delay(100);
-					api_reset();
+				case LMH_SUCCESS:
+					MYLOG("APP", "Packet enqueued");
+					break;
+				case LMH_BUSY:
+					MYLOG("APP", "LoRa transceiver is busy");
+					AT_PRINTF("+EVT:BUSY\n");
+
+					/// \todo if 10 times busy, restart the node
+					join_or_send_fail++;
+					if (join_or_send_fail == 10)
+					{
+						// Too many failed send attempts, reset node and try to rejoin
+						delay(100);
+						api_reset();
+					}
+					break;
+				case LMH_ERROR:
+					AT_PRINTF("+EVT:SIZE_ERROR\n");
+					MYLOG("APP", "Packet error, too big to send with current DR");
+
+					/// \todo if 10 times busy, restart the node
+					join_or_send_fail++;
+					if (join_or_send_fail == 10)
+					{
+						// Too many failed send attempts, reset node and try to rejoin
+						delay(100);
+						api_reset();
+					}
+					break;
 				}
-
-				///  \todo try to restart LoRaWAN stack
-				rejoin_network = true;
-				init_lorawan();
-				break;
-			case LMH_ERROR:
-				AT_PRINTF("+EVT:SIZE_ERROR\n");
-				MYLOG("APP", "Packet error, too big to send with current DR");
-
-				/// \todo if 10 times busy, restart the node
-				join_or_send_fail++;
-				if (join_or_send_fail == 10)
-				{
-					// Too many failed send attempts, reset node and try to rejoin
-					delay(100);
-					api_reset();
-				}
-
-				///  \todo try to restart LoRaWAN stack
-				rejoin_network = true;
-				init_lorawan();
-				break;
+			}
+			else
+			{
+				MYLOG("APP", "LoRaWAN not joined yet, skip uplink");
 			}
 		}
 		else
 		{
-			MYLOG("APP", "LoRaWAN not joined yet, skip uplink");
+			// Add the device DevEUI as a device ID to the packet
+			uint8_t packet_buffer[g_solution_data.getSize() + 8];
+			memcpy(packet_buffer, g_lorawan_settings.node_device_eui, 8);
+			memcpy(&packet_buffer[8], g_solution_data.getBuffer(), g_solution_data.getSize());
+
+			// Send packet over LoRa
+			if (send_p2p_packet(packet_buffer, g_solution_data.getSize() + 8))
+			{
+				MYLOG("APP", "Packet enqueued");
+			}
+			else
+			{
+				AT_PRINTF("+EVT:SIZE_ERROR\n");
+				MYLOG("APP", "Packet too big");
+			}
 		}
+		// Reset the packet
+		g_solution_data.reset();
 	}
 }
 

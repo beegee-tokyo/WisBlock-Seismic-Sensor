@@ -67,7 +67,7 @@ else
 // flag variables to handle collapse/shutoff only one time during an earthquake
 bool shutoff_alert = false;
 bool collapse_alert = false;
-bool earthquake_end = true;
+bool earthquake_end = false;
 bool earthquake_start = false;
 
 float savedSI = 0.0f;
@@ -109,7 +109,7 @@ void report_status(void)
  */
 void d7s_int1_handler(void)
 {
-	api_wake_loop(STATUS | SEISMIC_ALERT);
+	api_wake_loop(SEISMIC_ALERT);
 }
 
 /**
@@ -128,7 +128,7 @@ void d7s_int2_handler(void)
 	{
 		digitalWrite(LED_BLUE, LOW);
 	}
-	api_wake_loop(STATUS | SEISMIC_EVENT);
+	api_wake_loop(SEISMIC_EVENT);
 }
 
 /**
