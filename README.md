@@ -192,7 +192,7 @@ void d7s_int2_handler(void)
 
 # Data packet format
 
-The data packet is encoded in an extended CayenneLPP format based on the [_**CayenneLPP format**_](https://github.com/ElectronicCats/CayenneLPP) provided by ElectronicCats. This format is supported by most LoRaWAN network servers and integrations, but as an extended version is used here, it will need a custom payload decoder. A set of payload decoders for different LoRaWAN network servers and integrations are in the [_**decoders**_](./decoders) folder.
+The data packet is encoded in an extended CayenneLPP format based on the [_**CayenneLPP format**_](https://github.com/ElectronicCats/CayenneLPP) provided by ElectronicCats. This format is supported by most LoRaWAN network servers and integrations, but as an extended version is used here, it will need a custom payload decoder. Standardized payload decoders for different LoRaWAN network servers and integrations can be found in the [_**RAKwireless_Standardized_Payload**_](https://github.com/RAKWireless/RAKwireless_Standardized_Payload) repo.
 
 The channel ID's used for the different values are:
 
@@ -245,7 +245,7 @@ As an simple example to visualize the earthquake data and sending an alert, I cr
 Datacake is an easy to use _**Low Code IoT Platform**_. In my Datacake account I setup the device with the matching payload decoder, visualization and creation of an email alert.
 
 ## Datacake payload decoder
-In the device configuration the Datacake decoder from the [_**decoders**_](./decoders) folder is used.
+In the device configuration the Datacake decoder from the [_**RAKwireless_Standardized_Payload**_](https://github.com/RAKWireless/RAKwireless_Standardized_Payload) repo is used.
 
 ## Datacake fields
 As the SI and PGA values are sent as 10 times of the value, beside of the data fields a formula feed is required to transform the received values to the real values.
